@@ -3,44 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>연세대학교 임상병리학 실전 평가 시스템</title>
+    <title>임상병리학 실전 평가 시스템</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
+        /* ================= 기본 (연세대) 테마 ================= */
         body { 
             font-family: 'Malgun Gothic', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            color: #1e293b; /* 깔끔한 다크 그레이 텍스트 */
+            color: #1e293b; 
             line-height: 1.6; 
             padding: 20px;
-            /* 배경 이미지 설정 */
             background-image: url('./images/yonsei_bg.png'); 
             background-size: cover; 
             background-position: center; 
             background-repeat: no-repeat; 
             background-attachment: fixed;
-            background-color: #00205B; /* 연세 블루 계열 배경 */
+            background-color: #00205B; 
+            transition: all 0.5s ease; /* 테마 전환 시 부드러운 효과 */
         }
         
-        /* 깔끔하고 밝은 학교 포털 느낌의 컨테이너 */
         .container { 
             max-width: 800px; 
             margin: 0 auto; 
-            background: rgba(255, 255, 255, 0.95); /* 거의 불투명한 깔끔한 화이트 */
+            background: rgba(255, 255, 255, 0.95); 
             padding: 35px; 
             border-radius: 8px; 
             box-shadow: 0 8px 30px rgba(0, 56, 118, 0.2); 
-            border: 2px solid #003876; /* 연세 블루 테두리 */
+            border: 2px solid #003876; 
+            transition: all 0.5s ease;
         }
         
-        h1, h2 { text-align: center; color: #003876; font-weight: 800; letter-spacing: -0.5px; }
+        h1, h2 { text-align: center; color: #003876; font-weight: 800; letter-spacing: -0.5px; transition: color 0.5s ease; }
         
-        /* 공통 버튼 스타일 */
         .btn { 
             display: block; width: 100%; padding: 15px; margin-top: 15px; 
             border: none; border-radius: 6px; font-size: 1.1em; font-weight: bold; 
             cursor: pointer; color: #fff; transition: all 0.2s ease; 
         }
         
-        /* 연세 블루 포인트 버튼 */
         .btn-primary { background: #003876; border: none; }
         .btn-primary:hover { background: #0050a0; box-shadow: 0 4px 12px rgba(0, 56, 118, 0.3); }
         
@@ -53,20 +52,18 @@
         .btn-danger { background: #8B0000; border: none; }
         .btn-danger:hover { background: #a50000; }
 
-        /* 메인 화면 스타일 */
         .settings-box { 
             background: #f8fafc; 
             padding: 20px; border-radius: 6px; margin-bottom: 20px; text-align: center; 
             border: 1px solid #cbd5e1;
         }
-        .settings-box strong#total-db-count { color: #003876; font-size: 1.1em; }
+        .settings-box strong#total-db-count { color: #003876; font-size: 1.1em; transition: color 0.5s ease;}
         .settings-box input { 
             padding: 10px; font-size: 1.1em; width: 80px; text-align: center; 
             background: white; color: #1e293b; border: 1px solid #cbd5e1; border-radius: 4px; 
         }
         .settings-box input:focus { outline: none; border-color: #003876; }
         
-        /* 퀴즈 화면 스타일 */
         .progress { text-align: right; color: #64748b; font-size: 0.95em; margin-bottom: 20px; font-weight: bold; }
         .question-box { margin-bottom: 25px; }
         .question-text { font-size: 1.25em; font-weight: bold; margin-bottom: 15px; color: #0f172a; }
@@ -74,7 +71,6 @@
         
         .options { display: flex; flex-direction: column; gap: 10px; }
         
-        /* 보기 버튼 스타일: LMS 시험 객관식 느낌 */
         .option-btn { 
             padding: 14px 18px; border: 2px solid #cbd5e1; border-radius: 6px; 
             background: white; 
@@ -84,7 +80,6 @@
         .option-btn:hover { border-color: #003876; background: #f1f5f9; }
         .option-btn.selected { border-color: #003876; background: #003876; color: white; }
         
-        /* 채점 후 색상: 확실한 정답/오답 컬러 */
         .option-btn.correct { border-color: #1e7e34; background: #1e7e34; color: white; }
         .option-btn.wrong { border-color: #b91c1c; background: #b91c1c; color: white; }
         
@@ -95,29 +90,80 @@
         .subjective-input:focus { outline: none; border-color: #003876; box-shadow: 0 0 5px rgba(0, 56, 118, 0.3); }
         
         .feedback { margin-top: 25px; padding: 18px; border-radius: 6px; display: none; line-height: 1.5; }
-        /* 해설 박스 */
         .feedback.correct { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .feedback.wrong { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
         .explanation { margin-top: 12px; font-weight: bold; color: #333; }
         
         #loading { text-align: center; font-size: 1.2em; color: #003876; margin-top: 50px; font-weight: bold; }
         
-        /* 결과 화면 스타일 */
         .result-stats { 
             font-size: 1.2em; text-align: center; margin: 20px 0; padding: 25px; 
             background: #f8fafc; border-radius: 8px; border: 1px solid #dbeafe; 
             color: #1e293b;
         }
-        #score-message { color: #003876; display: block; margin-top: 15px; font-weight: bold; font-size: 1.1em; }
+        #score-message { color: #003876; display: block; margin-top: 15px; font-weight: bold; font-size: 1.1em; transition: color 0.5s ease;}
+
+        /* ================= 고려대 테마 (이스터에그) ================= */
+        body.korea-theme {
+            background-image: url('./images/korea_bg.png');
+            background-color: #820024; /* 크림슨 레드 */
+        }
+        body.korea-theme .container {
+            border-color: #820024;
+            box-shadow: 0 8px 30px rgba(130, 0, 36, 0.2);
+        }
+        body.korea-theme h1, body.korea-theme h2, 
+        body.korea-theme .settings-box strong#total-db-count, 
+        body.korea-theme #score-message, body.korea-theme #loading {
+            color: #820024;
+        }
+        body.korea-theme .btn-primary, body.korea-theme .btn-success {
+            background: #820024;
+        }
+        body.korea-theme .btn-primary:hover, body.korea-theme .btn-success:hover {
+            background: #5a0019;
+            box-shadow: 0 4px 12px rgba(130, 0, 36, 0.3);
+        }
+        body.korea-theme .settings-box input:focus, 
+        body.korea-theme .subjective-input:focus {
+            border-color: #820024;
+            box-shadow: 0 0 5px rgba(130, 0, 36, 0.3);
+        }
+        body.korea-theme .option-btn:hover { border-color: #820024; }
+        body.korea-theme .option-btn.selected {
+            border-color: #820024; background: #820024;
+        }
+
+        /* 숨겨진 테마 전환 버튼 */
+        #secret-btn {
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            width: 30px;
+            height: 30px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            opacity: 0.05; /* 평소엔 거의 안 보임 */
+            z-index: 9999;
+            border-radius: 50%;
+            transition: opacity 0.3s;
+        }
+        #secret-btn:hover {
+            opacity: 0.8;
+            background: rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
+
+<button id="secret-btn" onclick="toggleTheme()" title="비밀의 문"></button>
 
 <div class="container">
     <div id="loading">시험 데이터를 동기화 중입니다...</div>
     
     <div id="start-screen" style="display: none;">
-        <h1>연세대학교 임상병리학 실전 평가 시스템</h1>
+        <h1 id="main-title">연세대학교 임상병리학 실전 평가 시스템</h1>
         <div class="settings-box">
             <p>현재 <strong id="total-db-count">0</strong>개의 문항이 데이터베이스에 등록되어 있습니다.</p>
             <label for="question-count">응시할 문항 수: </label>
@@ -160,6 +206,20 @@
 </div>
 
 <script>
+    // 테마 전환 스크립트
+    function toggleTheme() {
+        const body = document.body;
+        const mainTitle = document.getElementById('main-title');
+        
+        body.classList.toggle('korea-theme');
+        
+        if (body.classList.contains('korea-theme')) {
+            mainTitle.innerText = "고려대학교 임상병리학 실전 평가 시스템";
+        } else {
+            mainTitle.innerText = "연세대학교 임상병리학 실전 평가 시스템";
+        }
+    }
+
     const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR9G8mJqpsn9xWmhg_2LCAWbfi2vsZTxRdq77NStrnzYHG3HCfgpatnlFh1Y6gP0IblU3EVJMPYr6_0/pub?output=csv"; 
 
     let allQuizData = [];
