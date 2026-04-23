@@ -3,70 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>임상병리학 실전 퀴즈</title>
+    <title>연세대학교 임상병리학 실전 평가 시스템</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; line-height: 1.6; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h1, h2 { text-align: center; color: #2c3e50; }
+        body { 
+            font-family: 'Malgun Gothic', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            color: #1e293b; /* 깔끔한 다크 그레이 텍스트 */
+            line-height: 1.6; 
+            padding: 20px;
+            /* 배경 이미지 설정 */
+            background-image: url('./images/yonsei_bg.png'); 
+            background-size: cover; 
+            background-position: center; 
+            background-repeat: no-repeat; 
+            background-attachment: fixed;
+            background-color: #00205B; /* 연세 블루 계열 배경 */
+        }
+        
+        /* 깔끔하고 밝은 학교 포털 느낌의 컨테이너 */
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: rgba(255, 255, 255, 0.95); /* 거의 불투명한 깔끔한 화이트 */
+            padding: 35px; 
+            border-radius: 8px; 
+            box-shadow: 0 8px 30px rgba(0, 56, 118, 0.2); 
+            border: 2px solid #003876; /* 연세 블루 테두리 */
+        }
+        
+        h1, h2 { text-align: center; color: #003876; font-weight: 800; letter-spacing: -0.5px; }
         
         /* 공통 버튼 스타일 */
-        .btn { display: block; width: 100%; padding: 15px; margin-top: 15px; border: none; border-radius: 6px; font-size: 1.1em; font-weight: bold; cursor: pointer; color: #fff; transition: background 0.2s; }
-        .btn-primary { background: #3498db; }
-        .btn-primary:hover { background: #2980b9; }
-        .btn-secondary { background: #95a5a6; }
-        .btn-secondary:hover { background: #7f8c8d; }
-        .btn-success { background: #27ae60; }
-        .btn-success:hover { background: #2ecc71; }
-        .btn-danger { background: #e74c3c; }
-        .btn-danger:hover { background: #c0392b; }
+        .btn { 
+            display: block; width: 100%; padding: 15px; margin-top: 15px; 
+            border: none; border-radius: 6px; font-size: 1.1em; font-weight: bold; 
+            cursor: pointer; color: #fff; transition: all 0.2s ease; 
+        }
+        
+        /* 연세 블루 포인트 버튼 */
+        .btn-primary { background: #003876; border: none; }
+        .btn-primary:hover { background: #0050a0; box-shadow: 0 4px 12px rgba(0, 56, 118, 0.3); }
+        
+        .btn-secondary { background: #64748b; }
+        .btn-secondary:hover { background: #475569; }
+        
+        .btn-success { background: #003876; border: none; }
+        .btn-success:hover { background: #0050a0; }
+        
+        .btn-danger { background: #8B0000; border: none; }
+        .btn-danger:hover { background: #a50000; }
 
         /* 메인 화면 스타일 */
-        .settings-box { background: #ecf0f1; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
-        .settings-box input { padding: 10px; font-size: 1.1em; width: 80px; text-align: center; border: 1px solid #bdc3c7; border-radius: 5px; }
+        .settings-box { 
+            background: #f8fafc; 
+            padding: 20px; border-radius: 6px; margin-bottom: 20px; text-align: center; 
+            border: 1px solid #cbd5e1;
+        }
+        .settings-box strong#total-db-count { color: #003876; font-size: 1.1em; }
+        .settings-box input { 
+            padding: 10px; font-size: 1.1em; width: 80px; text-align: center; 
+            background: white; color: #1e293b; border: 1px solid #cbd5e1; border-radius: 4px; 
+        }
+        .settings-box input:focus { outline: none; border-color: #003876; }
         
         /* 퀴즈 화면 스타일 */
-        .progress { text-align: right; color: #7f8c8d; font-size: 0.9em; margin-bottom: 20px; }
+        .progress { text-align: right; color: #64748b; font-size: 0.95em; margin-bottom: 20px; font-weight: bold; }
         .question-box { margin-bottom: 25px; }
-        .question-text { font-size: 1.2em; font-weight: bold; margin-bottom: 15px; }
-        .image-container img { max-width: 100%; border-radius: 8px; margin-bottom: 15px; }
+        .question-text { font-size: 1.25em; font-weight: bold; margin-bottom: 15px; color: #0f172a; }
+        .image-container img { max-width: 100%; border-radius: 4px; margin-bottom: 15px; border: 1px solid #cbd5e1; }
+        
         .options { display: flex; flex-direction: column; gap: 10px; }
-        .option-btn { padding: 12px 15px; border: 2px solid #bdc3c7; border-radius: 6px; background: #fff; cursor: pointer; text-align: left; font-size: 1em; transition: all 0.2s; }
-        .option-btn:hover { border-color: #3498db; background: #ebf5fb; }
-        .option-btn.selected { border-color: #3498db; background: #3498db; color: #fff; }
-        .option-btn.correct { border-color: #2ecc71; background: #2ecc71; color: #fff; }
-        .option-btn.wrong { border-color: #e74c3c; background: #e74c3c; color: #fff; }
-        .subjective-input { padding: 12px; font-size: 1em; border: 2px solid #bdc3c7; border-radius: 6px; width: 100%; box-sizing: border-box; }
         
-        .feedback { margin-top: 20px; padding: 15px; border-radius: 6px; display: none; }
-        .feedback.correct { background: #d5f5e3; color: #1e8449; }
-        .feedback.wrong { background: #fadbd8; color: #922b21; }
-        .explanation { margin-top: 10px; font-weight: bold; }
+        /* 보기 버튼 스타일: LMS 시험 객관식 느낌 */
+        .option-btn { 
+            padding: 14px 18px; border: 2px solid #cbd5e1; border-radius: 6px; 
+            background: white; 
+            cursor: pointer; text-align: left; font-size: 1.05em; color: #1e293b; 
+            transition: all 0.2s ease; 
+        }
+        .option-btn:hover { border-color: #003876; background: #f1f5f9; }
+        .option-btn.selected { border-color: #003876; background: #003876; color: white; }
         
-        #loading { text-align: center; font-size: 1.2em; color: #7f8c8d; }
+        /* 채점 후 색상: 확실한 정답/오답 컬러 */
+        .option-btn.correct { border-color: #1e7e34; background: #1e7e34; color: white; }
+        .option-btn.wrong { border-color: #b91c1c; background: #b91c1c; color: white; }
+        
+        .subjective-input { 
+            padding: 15px; font-size: 1.1em; width: 100%; box-sizing: border-box;
+            background: white; color: #1e293b; border: 2px solid #cbd5e1; border-radius: 6px; 
+        }
+        .subjective-input:focus { outline: none; border-color: #003876; box-shadow: 0 0 5px rgba(0, 56, 118, 0.3); }
+        
+        .feedback { margin-top: 25px; padding: 18px; border-radius: 6px; display: none; line-height: 1.5; }
+        /* 해설 박스 */
+        .feedback.correct { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .feedback.wrong { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .explanation { margin-top: 12px; font-weight: bold; color: #333; }
+        
+        #loading { text-align: center; font-size: 1.2em; color: #003876; margin-top: 50px; font-weight: bold; }
         
         /* 결과 화면 스타일 */
-        .result-stats { font-size: 1.2em; text-align: center; margin: 20px 0; padding: 20px; background: #f9ebea; border-radius: 8px; }
+        .result-stats { 
+            font-size: 1.2em; text-align: center; margin: 20px 0; padding: 25px; 
+            background: #f8fafc; border-radius: 8px; border: 1px solid #dbeafe; 
+            color: #1e293b;
+        }
+        #score-message { color: #003876; display: block; margin-top: 15px; font-weight: bold; font-size: 1.1em; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div id="loading">데이터베이스를 연동하는 중입니다...</div>
+    <div id="loading">시험 데이터를 동기화 중입니다...</div>
     
     <div id="start-screen" style="display: none;">
-        <h1>📝 임상병리학 실전 퀴즈</h1>
+        <h1>연세대학교 임상병리학 실전 평가 시스템</h1>
         <div class="settings-box">
-            <p>총 <strong id="total-db-count">0</strong>개의 문제가 준비되어 있습니다.</p>
-            <label for="question-count">이번에 풀 문제 수: </label>
+            <p>현재 <strong id="total-db-count">0</strong>개의 문항이 데이터베이스에 등록되어 있습니다.</p>
+            <label for="question-count">응시할 문항 수: </label>
             <input type="number" id="question-count" value="10" min="1">
         </div>
-        <button class="btn btn-primary" onclick="startQuiz('random')">랜덤 모의고사 시작</button>
-        <button class="btn btn-secondary" onclick="startQuiz('all')">전체 문제 순서대로 풀기</button>
+        <button class="btn btn-primary" onclick="startQuiz('random')">실전 모의고사 응시 (랜덤)</button>
+        <button class="btn btn-secondary" onclick="startQuiz('all')">전체 문항 순차 학습</button>
     </div>
 
     <div id="quiz-area" style="display: none;">
-        <div class="progress">문제 <span id="current-num">1</span> / <span id="total-num">10</span></div>
+        <div class="progress">진행률: <span id="current-num">1</span> / <span id="total-num">10</span></div>
         
         <div class="question-box">
             <div id="question-text" class="question-text">문제 내용</div>
@@ -75,41 +137,39 @@
 
         <div id="options-container" class="options"></div>
 
-        <button id="submit-btn" class="btn btn-primary" onclick="checkAnswer()">정답 확인</button>
+        <button id="submit-btn" class="btn btn-primary" onclick="checkAnswer()">답안 제출</button>
         
         <div id="feedback-box" class="feedback">
-            <div id="feedback-text"></div>
+            <div id="feedback-text" style="font-size: 1.1em; font-weight: bold;"></div>
             <div id="explanation-text" class="explanation"></div>
         </div>
 
-        <button id="next-btn" class="btn btn-success" style="display:none;" onclick="nextQuestion()">다음 문제로</button>
+        <button id="next-btn" class="btn btn-success" style="display:none;" onclick="nextQuestion()">다음 문항</button>
     </div>
 
     <div id="result-screen" style="display: none;">
-        <h2>🎉 퀴즈 종료!</h2>
+        <h2>평가 종료</h2>
         <div class="result-stats">
-            정답: <strong id="correct-count" style="color:#27ae60;">0</strong> / 전체: <strong id="result-total-count">0</strong>
-            <br><br>
+            최종 정답 수: <strong id="correct-count" style="color:#1e7e34; font-size: 1.3em;">0</strong> / <strong id="result-total-count">0</strong>
             <span id="score-message"></span>
         </div>
         
-        <button id="retry-wrong-btn" class="btn btn-danger" style="display:none;" onclick="startWrongQuiz()">틀린 문제만 다시 풀기</button>
-        <button class="btn btn-secondary" onclick="goHome()">메인 화면으로 돌아가기</button>
+        <button id="retry-wrong-btn" class="btn btn-danger" style="display:none;" onclick="startWrongQuiz()">오답 노트 (틀린 문항 재평가)</button>
+        <button class="btn btn-secondary" onclick="goHome()">초기 화면으로 복귀</button>
     </div>
 </div>
 
 <script>
     const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR9G8mJqpsn9xWmhg_2LCAWbfi2vsZTxRdq77NStrnzYHG3HCfgpatnlFh1Y6gP0IblU3EVJMPYr6_0/pub?output=csv"; 
 
-    let allQuizData = []; // DB 전체 데이터
-    let currentQuizPool = []; // 현재 세션에서 풀 문제들
-    let wrongQuestions = []; // 틀린 문제 저장용
+    let allQuizData = [];
+    let currentQuizPool = [];
+    let wrongQuestions = [];
     
     let currentIndex = 0;
     let correctAnswers = 0;
     let selectedOption = null;
 
-    // 1. 데이터 불러오기
     Papa.parse(SHEET_CSV_URL, {
         download: true,
         header: true,
@@ -120,16 +180,13 @@
                 document.getElementById('start-screen').style.display = 'block';
                 document.getElementById('total-db-count').innerText = allQuizData.length;
                 document.getElementById('question-count').max = allQuizData.length;
-                
-                // 기본 문제 수를 전체 데이터 수와 10 중 작은 값으로 설정
                 document.getElementById('question-count').value = Math.min(10, allQuizData.length);
             } else {
-                document.getElementById('loading').innerText = "데이터를 불러오지 못했습니다. CSV 주소를 확인해주세요.";
+                document.getElementById('loading').innerText = "데이터베이스 접근 실패. URL을 확인해 주십시오.";
             }
         }
     });
 
-    // 배열 셔플 함수 (랜덤 추출용)
     function shuffleArray(array) {
         let shuffled = array.slice();
         for (let i = shuffled.length - 1; i > 0; i--) {
@@ -139,26 +196,22 @@
         return shuffled;
     }
 
-    // 2. 퀴즈 시작 로직
     function startQuiz(mode) {
         if (mode === 'random') {
             const countInput = parseInt(document.getElementById('question-count').value);
             const count = Math.min(countInput, allQuizData.length);
             currentQuizPool = shuffleArray(allQuizData).slice(0, count);
         } else if (mode === 'all') {
-            currentQuizPool = allQuizData.slice(); // 전체 순서대로
+            currentQuizPool = allQuizData.slice();
         }
-        
         initializeQuizState();
     }
 
-    // 오답 노트 퀴즈 시작
     function startWrongQuiz() {
         currentQuizPool = shuffleArray(wrongQuestions);
         initializeQuizState();
     }
 
-    // 퀴즈 상태 초기화 및 화면 전환
     function initializeQuizState() {
         wrongQuestions = [];
         currentIndex = 0;
@@ -172,13 +225,11 @@
         loadQuestion(currentIndex);
     }
 
-    // 홈으로 돌아가기
     function goHome() {
         document.getElementById('result-screen').style.display = 'none';
         document.getElementById('start-screen').style.display = 'block';
     }
 
-    // 3. 문제 렌더링
     function loadQuestion(index) {
         const q = currentQuizPool[index];
         selectedOption = null;
@@ -226,7 +277,6 @@
         selectedOption = optionLetter;
     }
 
-    // 4. 채점 및 오답 기록
     function checkAnswer() {
         const q = currentQuizPool[currentIndex];
         const hasA = q['보기A'] && q['보기A'].trim() !== '';
@@ -236,12 +286,12 @@
             const inputEl = document.getElementById('subjective-answer');
             const userAnswer = inputEl.value.trim().toLowerCase();
             const correctAnswer = q['정답'].trim().toLowerCase();
-            if(userAnswer === '') { alert("정답을 입력해주세요."); return; }
+            if(userAnswer === '') { alert("답안을 입력해 주십시오."); return; }
             
             isCorrect = (userAnswer === correctAnswer);
             inputEl.disabled = true;
         } else {
-            if (!selectedOption) { alert("보기를 선택해주세요."); return; }
+            if (!selectedOption) { alert("보기를 선택해 주십시오."); return; }
             isCorrect = (selectedOption === q['정답'].trim().toUpperCase());
             
             const buttons = document.querySelectorAll('.option-btn');
@@ -263,9 +313,8 @@
         if (isCorrect) {
             correctAnswers++;
             feedbackBox.className = 'feedback correct';
-            feedbackText.innerText = '⭕ 정답입니다!';
+            feedbackText.innerText = '⭕ 정답입니다.';
         } else {
-            // 틀린 문제 배열에 저장
             wrongQuestions.push(q);
             feedbackBox.className = 'feedback wrong';
             feedbackText.innerText = `❌ 오답입니다. (정답: ${q['정답']})`;
@@ -275,19 +324,17 @@
 
         document.getElementById('submit-btn').style.display = 'none';
         
-        // 마지막 문제면 버튼 텍스트 변경
         const nextBtn = document.getElementById('next-btn');
         nextBtn.style.display = 'block';
         if (currentIndex === currentQuizPool.length - 1) {
-            nextBtn.innerText = "결과 보기";
+            nextBtn.innerText = "결과 확인";
             nextBtn.className = "btn btn-primary";
         } else {
-            nextBtn.innerText = "다음 문제로";
+            nextBtn.innerText = "다음 문항";
             nextBtn.className = "btn btn-success";
         }
     }
 
-    // 5. 다음 문제 진행 및 결과 화면
     function nextQuestion() {
         currentIndex++;
         if (currentIndex < currentQuizPool.length) {
@@ -308,17 +355,17 @@
         const scoreMsg = document.getElementById('score-message');
         
         if (scoreRatio === 1) {
-            scoreMsg.innerText = "완벽합니다! 💯";
+            scoreMsg.innerText = "탁월한 성적입니다. 완벽하게 이해하셨습니다.";
         } else if (scoreRatio >= 0.7) {
-            scoreMsg.innerText = "훌륭합니다! 조금만 더 다듬으면 완벽하겠네요. 👍";
+            scoreMsg.innerText = "우수한 성적입니다. 합격권에 도달했습니다.";
         } else {
-            scoreMsg.innerText = "복습이 조금 더 필요합니다. 화이팅! 💪";
+            scoreMsg.innerText = "추가적인 학습이 필요합니다. 오답 노트를 활용해 주십시오.";
         }
 
         const retryBtn = document.getElementById('retry-wrong-btn');
         if (wrongQuestions.length > 0) {
             retryBtn.style.display = 'block';
-            retryBtn.innerText = `틀린 ${wrongQuestions.length}문제 다시 풀기`;
+            retryBtn.innerText = `오답 노트 (${wrongQuestions.length}문항 재평가)`;
         } else {
             retryBtn.style.display = 'none';
         }
