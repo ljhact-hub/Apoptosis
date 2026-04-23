@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>간단 퀴즈</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; line-height: 1.6; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2c3e50; }
+        .progress { text-align: right; color: #7f8c8d; font-size: 0.9em; margin-bottom: 20px; }
+        .question-box { margin-bottom: 25px; }
+        .question-text { font-size: 1.2em; font-weight: bold; margin-bottom: 15px; }
+        .image-container img { max-width: 100%; border-radius: 8px; margin-bottom: 15px; }
+        .options { display: flex; flex-direction: column; gap: 10px; }
+        .option-btn { padding: 12px 15px; border: 2px solid #bdc3c7; border-radius: 6px; background: #fff; cursor: pointer; text-align: left; font-size: 1em; transition: all 0.2s; }
+        .option-btn:hover { border-color: #3498db; background: #ebf5fb; }
+        .option-btn.selected { border-color: #3498db; background: #3498db; color: #fff; }
+        .option-btn.correct { border-color: #2ecc71; background: #2ecc71; color: #fff; }
+        .option-btn.wrong { border-color: #e74c3c; background: #e74c3c; color: #fff; }
+        .subjective-input { padding: 12px; font-size: 1em; border: 2px solid #bdc3c7; border-radius: 6px; width: 100%; box-sizing: border-box; }
+        .submit-btn, .next-btn { display: block; width: 100%; padding: 15px; margin-top: 20px; border: none; border-radius: 6px; font-size: 1.1em; font-weight: bold; cursor: pointer; color: #fff; transition: background 0.2s; }
+        .submit-btn { background: #2c3e50; }
+        .submit-btn:hover { background: #34495e; }
+        .next-btn { background: #27ae60; display: none; }
+        .next-btn:hover { background: #2ecc71; }
+        .feedback { margin-top: 20px; padding: 15px; border-radius: 6px; display: none; }
+        .feedback.correct { background: #d5f5e3; color: #1e8449; }
+        .feedback.wrong { background: #fadbd8; color: #922b21; }
+        .explanation { margin-top: 10px; font-weight: bold; }
+        #loading { text-align: center; font-size: 1.2em; color: #7f8c8d; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📝 임상병리학 퀴즈</h1>
+    <div id="loading">문제 데이터를 불러오는 중입니다...</div>
+    
+    <div id="quiz-area" style="display: none;">
+        <div class="progress"><span id="current-num">1</span> / <span id="total-num">10</span></div>
+        
+        <div class="question-box">
+            <div id="question-text" class="question-text">문제 내용</div>
+            <div id="image-container" class="image-container"></div>
+        </div>
+
+        <div id="options-container" class="options">
+            </div>
+
+        <button id="submit-btn" class="submit-btn" onclick="checkAnswer()">정답 확인</button>
+        
+        <div id="feedback-box" class="feedback">
+            <div id="feedback-text"></div>
+            <div id="explanation-text" class="explanation"></div>
+        </div>
+
+        <button id="next-btn" class="next-btn" onclick="nextQuestion()">다음 문제로</button>
+    </div>
+</div>
+
+<script>
+    // ★ 여기에 구글 스프레드시트 '웹에 게시(CSV)' URL을 넣으세요 ★
+    const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR9G8mJqpsn9xWmhg_2LCAWbfi2vsZTxRdq77NStrnzYHG3HCfgpatnlFh1Y6gP0IblU3EVJMPYr6_0/pub?output=csv"; 
+
+    let quizData = [];
+    let currentIndex = 0;
+    let selectedOption = null;
+
+    // 데이터 불러오기
+    Papa.parse(SHEET_CSV_URL, {
+        download: true,
+        header: true,
+        complete: function(results) {
+            // 빈 줄 필터링
+            quizData = results.data.filter(row => row['문제'] && row['문제'].trim() !== '');
+            if (quizData.length > 0) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('quiz-area').style.display = 'block';
+                document.getElementById('total-num').innerText = quizData.length;
+                loadQuestion(currentIndex);
+            } else {
+                document.getElementById('loading').innerText = "데이터를 불러오지 못했습니다. CSV 주소와 시트 형식을 확인해주세요.";
+            }
+        }
+    });
+
+    function loadQuestion(index) {
+        const q = quizData[index];
+        selectedOption = null;
+        
+        // 초기화
+        document.getElementById('current-num').innerText = index + 1;
+        document.getElementById('question-text').innerText = q['문제'];
+        document.getElementById('feedback-box').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'none';
+        document.getElementById('submit-btn').style.display = 'block';
+        
+        const imageContainer = document.getElementById('image-container');
+        const optionsContainer = document.getElementById('options-container');
+        imageContainer.innerHTML = '';
+        optionsContainer.innerHTML = '';
+
+        // 이미지 처리
+        if (q['이미지'] && q['이미지'].trim() !== '') {
+            const img = document.createElement('img');
+            img.src = `./images/${q['이미지'].trim()}`;
+            imageContainer.appendChild(img);
+        }
+
+        // 문제 유형 자동 판별 (빈칸 검사)
+        const hasA = q['보기A'] && q['보기A'].trim() !== '';
+        
+        if (!hasA) {
+            // [주관식 모드]
+            optionsContainer.innerHTML = `<input type="text" id="subjective-answer" class="subjective-input" placeholder="정답을 입력하세요">`;
+        } else {
+            // [객관식 / OX 모드]
+            const options = ['A', 'B', 'C', 'D', 'E'];
+            options.forEach(opt => {
+                const key = `보기${opt}`;
+                if (q[key] && q[key].trim() !== '') {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.innerText = `${opt}) ${q[key]}`;
+                    btn.onclick = () => selectOption(btn, opt);
+                    optionsContainer.appendChild(btn);
+                }
+            });
+        }
+    }
+
+    function selectOption(button, optionLetter) {
+        const buttons = document.querySelectorAll('.option-btn');
+        buttons.forEach(btn => btn.classList.remove('selected'));
+        button.classList.add('selected');
+        selectedOption = optionLetter;
+    }
+
+    function checkAnswer() {
+        const q = quizData[currentIndex];
+        const hasA = q['보기A'] && q['보기A'].trim() !== '';
+        let isCorrect = false;
+        let userAnswer = '';
+
+        if (!hasA) {
+            // 주관식 채점
+            const inputEl = document.getElementById('subjective-answer');
+            userAnswer = inputEl.value.trim().toLowerCase();
+            const correctAnswer = q['정답'].trim().toLowerCase();
+            if(userAnswer === '') {
+                alert("정답을 입력해주세요."); return;
+            }
+            isCorrect = (userAnswer === correctAnswer);
+            inputEl.disabled = true;
+        } else {
+            // 객관식 채점
+            if (!selectedOption) {
+                alert("보기를 선택해주세요."); return;
+            }
+            isCorrect = (selectedOption === q['정답'].trim().toUpperCase());
+            
+            // 색상 표시
+            const buttons = document.querySelectorAll('.option-btn');
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                if (btn.innerText.startsWith(q['정답'].trim().toUpperCase())) {
+                    btn.classList.add('correct');
+                } else if (btn.classList.contains('selected') && !isCorrect) {
+                    btn.classList.add('wrong');
+                }
+            });
+        }
+
+        // 해설 표시
+        const feedbackBox = document.getElementById('feedback-box');
+        const feedbackText = document.getElementById('feedback-text');
+        const explanationText = document.getElementById('explanation-text');
+
+        feedbackBox.style.display = 'block';
+        if (isCorrect) {
+            feedbackBox.className = 'feedback correct';
+            feedbackText.innerText = '⭕ 정답입니다!';
+        } else {
+            feedbackBox.className = 'feedback wrong';
+            feedbackText.innerText = `❌ 오답입니다. (정답: ${q['정답']})`;
+        }
+        
+        explanationText.innerText = q['해설'] ? q['해설'] : '';
+
+        document.getElementById('submit-btn').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'block';
+    }
+
+    function nextQuestion() {
+        currentIndex++;
+        if (currentIndex < quizData.length) {
+            loadQuestion(currentIndex);
+        } else {
+            document.getElementById('quiz-area').innerHTML = `
+                <h2>🎉 모든 문제를 풀었습니다!</h2>
+                <p>수고하셨습니다. 새로고침을 누르면 처음부터 다시 시작합니다.</p>
+            `;
+        }
+    }
+</script>
+</body>
+</html>
