@@ -214,12 +214,12 @@
         learningProgress: {},  
         bookmarks: {},         
         
-        // --- 퀴즈 진행 상태 (업그레이드) ---
+        // --- 퀴즈 진행 상태 ---
         currentMode: "",       
-        itemsPerPage: 2,       // 데스크탑 기준 한 페이지 2문제
+        itemsPerPage: 2,       
         currentPage: 0,
-        userAnswers: {},       // { 문제인덱스: 'A', ... }
-        practiceSubmitted: {}, // { 문제인덱스: true } (연습모드에서 정답 확인 누른 문항 추적)
+        userAnswers: {},       
+        practiceSubmitted: {}, 
 
         init() {
             this.loadTheme();
@@ -312,7 +312,6 @@
             ["start-screen", "quiz-area", "study-area", "result-screen", "search-screen"].forEach(s => $(s).style.display = (s===id?'block':'none'));
         },
 
-        // --- 북마크 로직 (이전과 동일) ---
         isBookmarked(q) {
             for (const folder in this.bookmarks) {
                 if (this.bookmarks[folder].some(bq => bq['문제'] === q['문제'])) return true;
@@ -355,13 +354,13 @@
             
             let imgHtml = (q['이미지'] && q['이미지'].trim()) ? `<img src="./images/${q['이미지'].trim()}" style="max-width:100%; display:block; margin-bottom:10px;" onerror="this.style.display='none'">` : '';
             
-            let optionsHtml = '<div class="options">';
+            let optionsHtml = '<div class="options" style="margin-top: 10px;">';
             ['A','B','C','D','E'].forEach(opt => {
                 const val = q[`보기${opt}`];
                 if (val && val.trim()) {
                     const isCorrect = (q['정답'].trim().toUpperCase() === opt);
                     const bgStyle = isCorrect ? 'background-color: #d4edda; border: 1px solid #1e7e34; color: #155724; font-weight:bold;' : 'background-color: #ffffff; border: 1px solid #cbd5e1; color: #334155;';
-                    optionsHtml += `<div style="padding: 10px 14px; border-radius: 6px; ${bgStyle}">${opt}) ${val} ${isCorrect ? ' ⭕ (정답)' : ''}</div>`;
+                    optionsHtml += `<div style="padding: 10px 14px; border-radius: 6px; margin-bottom: 8px; ${bgStyle}">${opt}) ${val} ${isCorrect ? ' ⭕ (정답)' : ''}</div>`;
                 }
             });
             optionsHtml += '</div>';
@@ -373,7 +372,7 @@
                 <div class="q-title">${indexText}Q. ${q['문제']}</div>
                 ${imgHtml}
                 ${optionsHtml}
-                <div class="feedback info" style="display:block; margin-top:15px;">
+                <div class="feedback info" style="display:block; margin-top: auto;">
                     <strong>📖 해설:</strong><br>
                     <span class="explanation-text">${q['해설'] || "해설이 등록되지 않았습니다."}</span>
                 </div>
@@ -404,7 +403,7 @@
             }
         },
 
-        // --- 퀴즈 풀이 로직 (새로운 페이지네이션 및 상태 관리) ---
+        // --- 퀴즈 풀이 로직 ---
         startQuiz(mode) {
             if (this.allQuizData.length === 0) return alert("문제가 로드되지 않았습니다.");
             this.currentMode = mode;
@@ -462,7 +461,6 @@
             `;
             card.querySelector('.card-bookmark-btn').onclick = (e) => this.toggleBookmark(q, e.target);
 
-            // 선택지 영역
             const optsDiv = document.createElement("div");
             optsDiv.className = "options";
             ['A','B','C','D','E'].forEach(opt => {
@@ -474,7 +472,6 @@
                     
                     if (this.userAnswers[index] === opt) btn.classList.add("selected");
                     
-                    // 연습모드에서 제출(확인) 완료된 경우 채점 스타일 적용 및 잠금
                     if (this.currentMode === 'practice' && this.practiceSubmitted[index]) {
                         btn.disabled = true;
                         const isCorrectAns = (q['정답'].trim().toUpperCase() === opt);
@@ -484,17 +481,15 @@
                     }
 
                     btn.onclick = () => {
-                        // 연습모드에서 이미 정답 확인을 눌렀다면 변경 불가
                         if (this.currentMode === 'practice' && this.practiceSubmitted[index]) return;
                         this.userAnswers[index] = opt;
-                        this.renderQuizPage(); // UI 갱신
+                        this.renderQuizPage();
                     };
                     optsDiv.appendChild(btn);
                 }
             });
             card.appendChild(optsDiv);
 
-            // 연습 모드 전용 '정답 확인' 버튼 및 피드백 출력
             if (this.currentMode === 'practice') {
                 if (!this.practiceSubmitted[index]) {
                     const checkBtn = document.createElement("button");
@@ -535,7 +530,6 @@
             const container = $("pagination-controls");
             container.innerHTML = "";
 
-            // 이전 페이지 버튼
             const prevBtn = document.createElement("button");
             prevBtn.className = "page-btn";
             prevBtn.innerText = "◀ 이전";
@@ -543,7 +537,6 @@
             prevBtn.onclick = () => { this.currentPage--; this.renderQuizPage(); window.scrollTo(0, 0); };
             container.appendChild(prevBtn);
 
-            // 숫자 버튼
             for (let i = 0; i < totalPages; i++) {
                 const pBtn = document.createElement("button");
                 pBtn.className = `page-btn ${i === this.currentPage ? 'active' : ''}`;
@@ -552,7 +545,6 @@
                 container.appendChild(pBtn);
             }
 
-            // 다음 페이지 버튼
             const nextBtn = document.createElement("button");
             nextBtn.className = "page-btn";
             nextBtn.innerText = "다음 ▶";
@@ -560,7 +552,6 @@
             nextBtn.onclick = () => { this.currentPage++; this.renderQuizPage(); window.scrollTo(0, 0); };
             container.appendChild(nextBtn);
 
-            // 시험 모드일 경우 마지막 페이지에서 '시험 종료' 버튼 노출
             const finishBtn = $("finish-exam-btn");
             if (this.currentMode === 'exam' && this.currentPage === totalPages - 1) {
                 finishBtn.style.display = "block";
@@ -575,9 +566,8 @@
             this.saveProgress();
         },
 
-        // --- 시험 종료 및 결과 처리 (일괄 채점) ---
+        // --- 시험 종료 및 결과 처리 (오답노트 UI 해설모드형으로 전면 개편) ---
         finishExam() {
-            // 풀지 않은 문제가 있는지 체크
             const unanswered = this.currentQuizPool.length - Object.keys(this.userAnswers).length;
             if (unanswered > 0) {
                 if (!confirm(`${unanswered}문제를 아직 풀지 않았습니다. 정말로 시험을 종료하고 제출하시겠습니까?`)) return;
@@ -590,13 +580,12 @@
                 const userAns = this.userAnswers[idx];
                 const isCorrect = userAns === q['정답'].trim().toUpperCase();
                 
-                // 학습률 업데이트
                 this.updateLearningRate(q, isCorrect);
 
                 if (isCorrect) {
                     correctCount++;
                 } else {
-                    wrongList.push({ question: q, userAns: userAns || "미선택", index: idx + 1 });
+                    wrongList.push({ question: q, userAns: userAns || "", index: idx + 1 });
                 }
             });
 
@@ -615,6 +604,7 @@
                 return;
             }
 
+            // 오답노트를 해설모드(전체 보기 표시)와 동일하게 렌더링
             wrongList.forEach((wrongItem) => {
                 const q = wrongItem.question;
                 const div = document.createElement("div");
@@ -623,17 +613,38 @@
                 let imgHtml = (q['이미지'] && q['이미지'].trim()) ? `<img src="./images/${q['이미지'].trim()}" style="max-width:100%; display:block; margin-bottom:10px;" onerror="this.style.display='none'">` : '';
                 const starIcon = this.isBookmarked(q) ? "⭐" : "☆";
 
+                // 전체 선택지 블록 생성 및 정답/오답 하이라이트
+                let optionsHtml = '<div class="options" style="margin-top: 10px;">';
+                ['A','B','C','D','E'].forEach(opt => {
+                    const val = q[`보기${opt}`];
+                    if (val && val.trim()) {
+                        const isCorrectAns = (q['정답'].trim().toUpperCase() === opt);
+                        const isUserAns = (wrongItem.userAns === opt);
+
+                        let bgStyle = 'background-color: #ffffff; border: 1px solid #cbd5e1; color: #334155;';
+                        let icon = '';
+
+                        if (isCorrectAns) {
+                            bgStyle = 'background-color: #d4edda; border: 1px solid #1e7e34; color: #155724; font-weight:bold;';
+                            icon = ' ⭕ (정답)';
+                        } else if (isUserAns) {
+                            bgStyle = 'background-color: #f8d7da; border: 1px solid #b91c1c; color: #721c24; font-weight:bold;';
+                            icon = ' ❌ (나의 답)';
+                        }
+
+                        optionsHtml += `<div style="padding: 10px 14px; border-radius: 6px; margin-bottom: 8px; ${bgStyle}">${opt}) ${val}${icon}</div>`;
+                    }
+                });
+                optionsHtml += '</div>';
+
                 div.innerHTML = `
                     <button class="card-bookmark-btn" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5em; cursor: pointer; color: #fbbf24;">${starIcon}</button>
                     <div class="q-title" style="padding-right: 35px;">${wrongItem.index}. ${q['문제']}</div>
                     ${imgHtml}
-                    <div class="ans-comparison">
-                        <span style="color:#b91c1c;">나의 답: ${wrongItem.userAns}) ${q[`보기${wrongItem.userAns}`] || "선택하지 않음"}</span><br>
-                        <span style="color:#1e7e34; font-weight:bold;">정답: ${q['정답']}) ${q[`보기${q['정답']}`]}</span>
-                    </div>
+                    ${optionsHtml}
                     <div class="feedback info" style="display:block; margin-top: auto;">
                         <strong>📖 해설:</strong><br>
-                        <span class="explanation-text">${q['해설']}</span>
+                        <span class="explanation-text">${q['해설'] || "해설이 등록되지 않았습니다."}</span>
                     </div>
                 `;
                 div.querySelector('.card-bookmark-btn').onclick = (e) => this.toggleBookmark(q, e.target);
