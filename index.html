@@ -59,8 +59,8 @@
 
         /* 리뷰 리스트 (해설 모드, 검색 화면, 결과창 공통) */
         .review-list { max-height: 600px; overflow-y: auto; padding-right: 10px; }
-        .review-card { background: #f8fafc; border: 1px solid #cbd5e1; padding: 20px; border-radius: 6px; margin-bottom: 15px; }
-        .review-card .q-title { font-weight: bold; font-size: 1.1em; margin-bottom: 15px; color: #003876; line-height: 1.4;}
+        .review-card { position: relative; background: #f8fafc; border: 1px solid #cbd5e1; padding: 20px; border-radius: 6px; margin-bottom: 15px; }
+        .review-card .q-title { font-weight: bold; font-size: 1.1em; margin-bottom: 15px; color: #003876; line-height: 1.4; padding-right: 35px; }
         .review-card .ans-comparison { margin: 10px 0; padding: 10px; background: white; border-radius: 4px; border-left: 4px solid #b91c1c; }
         
         #secret-btn { position: fixed; bottom: 15px; right: 15px; width: 30px; height: 30px; background: transparent; border: none; cursor: pointer; opacity: 0.05; z-index: 9999; }
@@ -308,6 +308,39 @@
             ["start-screen", "quiz-area", "study-area", "result-screen", "search-screen"].forEach(s => $(s).style.display = (s===id?'block':'none'));
         },
 
+        // --- 공통 리뷰 카드 생성 헬퍼 ---
+        createReviewCard(q, indexText = "") {
+            const div = document.createElement("div");
+            div.className = "review-card";
+            
+            let imgHtml = (q['이미지'] && q['이미지'].trim()) ? `<img src="./images/${q['이미지'].trim()}" style="max-width:100%; display:block; margin-bottom:10px;" onerror="this.style.display='none'">` : '';
+            
+            let optionsHtml = '<div style="margin: 15px 0; display:flex; flex-direction:column; gap:8px;">';
+            ['A','B','C','D','E'].forEach(opt => {
+                const val = q[`보기${opt}`];
+                if (val && val.trim()) {
+                    const isCorrect = (q['정답'].trim().toUpperCase() === opt);
+                    const bgStyle = isCorrect ? 'background-color: #d4edda; border: 1px solid #1e7e34; color: #155724; font-weight:bold;' : 'background-color: #ffffff; border: 1px solid #cbd5e1; color: #334155;';
+                    optionsHtml += `<div style="padding: 10px 14px; border-radius: 6px; ${bgStyle}">${opt}) ${val} ${isCorrect ? ' ⭕ (정답)' : ''}</div>`;
+                }
+            });
+            optionsHtml += '</div>';
+
+            div.innerHTML = `
+                <button class="card-bookmark-btn" title="북마크 저장" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5em; cursor: pointer; color: #fbbf24;">⭐</button>
+                <div class="q-title">${indexText}Q. ${q['문제']}</div>
+                ${imgHtml}
+                ${optionsHtml}
+                <div class="feedback info" style="display:block; margin-top:15px;">
+                    <strong>📖 해설:</strong><br>
+                    <span class="explanation-text">${q['해설'] || "해설이 등록되지 않았습니다."}</span>
+                </div>
+            `;
+            
+            div.querySelector('.card-bookmark-btn').onclick = () => this.addBookmarkSpecific(q);
+            return div;
+        },
+
         // --- 문항 검색 관련 로직 ---
         showSearchScreen() {
             this.showScreen("search-screen");
@@ -333,41 +366,14 @@
             if (results.length === 0) {
                 resContainer.innerHTML = `<div style="color:#b91c1c; text-align:center; padding:30px; font-weight:bold;">검색 결과가 없습니다.</div>`;
             } else {
-                results.forEach((q, idx) => {
-                    const div = document.createElement("div");
-                    div.className = "review-card";
-                    
-                    let imgHtml = (q['이미지'] && q['이미지'].trim()) ? `<img src="./images/${q['이미지'].trim()}" style="max-width:100%; display:block; margin-bottom:10px;" onerror="this.style.display='none'">` : '';
-                    
-                    // 선택지 생성 (정답은 녹색 배경)
-                    let optionsHtml = '<div style="margin: 15px 0; display:flex; flex-direction:column; gap:8px;">';
-                    ['A','B','C','D','E'].forEach(opt => {
-                        const val = q[`보기${opt}`];
-                        if (val && val.trim()) {
-                            const isCorrect = (q['정답'].trim().toUpperCase() === opt);
-                            const bgStyle = isCorrect ? 'background-color: #d4edda; border: 1px solid #1e7e34; color: #155724; font-weight:bold;' : 'background-color: #ffffff; border: 1px solid #cbd5e1; color: #334155;';
-                            optionsHtml += `<div style="padding: 10px 14px; border-radius: 6px; ${bgStyle}">${opt}) ${val} ${isCorrect ? ' ⭕ (정답)' : ''}</div>`;
-                        }
-                    });
-                    optionsHtml += '</div>';
-
-                    div.innerHTML = `
-                        <div class="q-title">Q. ${q['문제']}</div>
-                        ${imgHtml}
-                        ${optionsHtml}
-                        <div class="feedback info" style="display:block; margin-top:15px;">
-                            <strong>📖 해설:</strong><br>
-                            <span class="explanation-text">${q['해설'] || "해설이 등록되지 않았습니다."}</span>
-                        </div>
-                    `;
-                    resContainer.appendChild(div);
+                results.forEach((q) => {
+                    resContainer.appendChild(this.createReviewCard(q));
                 });
             }
         },
 
         // --- 북마크 추가 로직 ---
-        addBookmark() {
-            const q = this.currentQuizPool[this.currentIndex];
+        addBookmarkSpecific(q) {
             const folderName = prompt("저장할 북마크 폴더명을 입력하세요 (예: 자주 틀리는 문제, 공식 암기 등):", "기본 폴더");
             if (!folderName) return;
 
@@ -378,9 +384,14 @@
                 this.bookmarks[folderName].push(q);
                 this.saveBookmarks();
                 alert(`'${folderName}' 폴더에 저장되었습니다.`);
+                this.renderBookmarkFolders();
             } else {
                 alert("이미 해당 폴더에 존재하는 문제입니다.");
             }
+        },
+
+        addBookmark() {
+            this.addBookmarkSpecific(this.currentQuizPool[this.currentIndex]);
         },
 
         // --- 퀴즈 풀이 진입 로직 ---
@@ -536,7 +547,8 @@
                 let imgHtml = (q['이미지'] && q['이미지'].trim()) ? `<img src="./images/${q['이미지'].trim()}" style="max-height:100px; display:block; margin-bottom:10px;" onerror="this.style.display='none'">` : '';
                 
                 div.innerHTML = `
-                    <div class="q-title">${idx + 1}. ${q['문제']}</div>
+                    <button class="card-bookmark-btn" title="북마크 저장" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5em; cursor: pointer; color: #fbbf24;">⭐</button>
+                    <div class="q-title" style="padding-right: 35px;">${idx + 1}. ${q['문제']}</div>
                     ${imgHtml}
                     <div class="ans-comparison">
                         <span style="color:#b91c1c;">나의 답: ${wrongItem.userAns}) ${q[`보기${wrongItem.userAns}`]}</span><br>
@@ -547,6 +559,7 @@
                         <span class="explanation-text">${q['해설']}</span>
                     </div>
                 `;
+                div.querySelector('.card-bookmark-btn').onclick = () => this.addBookmarkSpecific(q);
                 reviewCont.appendChild(div);
             });
         },
@@ -559,23 +572,7 @@
             container.innerHTML = "";
             
             this.allQuizData.forEach((q, idx) => {
-                const div = document.createElement("div");
-                div.className = "review-card";
-                
-                let imgHtml = (q['이미지'] && q['이미지'].trim()) ? `<img src="./images/${q['이미지'].trim()}" style="max-width:100%; display:block; margin-bottom:10px;" onerror="this.style.display='none'">` : '';
-                
-                div.innerHTML = `
-                    <div class="q-title">${idx + 1}. ${q['문제']}</div>
-                    ${imgHtml}
-                    <div style="margin-bottom: 10px; color: #1e7e34; font-weight:bold;">
-                        정답: ${q['정답']}) ${q[`보기${q['정답']}`]}
-                    </div>
-                    <div class="feedback info" style="display:block;">
-                        <strong>📖 해설:</strong><br>
-                        <span class="explanation-text">${q['해설']}</span>
-                    </div>
-                `;
-                container.appendChild(div);
+                container.appendChild(this.createReviewCard(q, `${idx + 1}. `));
             });
             
             this.showScreen("study-area");
