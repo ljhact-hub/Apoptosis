@@ -6,42 +6,76 @@
     <title>연세대학교 임상병리학 통합 평가 시스템</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
-        /* [기존 연세대 테마 스타일 유지] */
+        /* 기본 테마 및 레이아웃 */
         body { font-family: 'Malgun Gothic', 'Segoe UI', sans-serif; color: #1e293b; padding: 20px; background-image: url('./images/yonsei_bg.png'); background-size: cover; background-position: center; background-attachment: fixed; background-color: #00205B; transition: all 0.5s ease; }
-        .container { max-width: 800px; margin: 0 auto; background: rgba(255, 255, 255, 0.95); padding: 35px; border-radius: 8px; box-shadow: 0 8px 30px rgba(0, 56, 118, 0.2); border: 2px solid #003876; }
-        h1, h2 { text-align: center; color: #003876; font-weight: 800; margin-bottom: 25px; }
-        .btn { display: block; width: 100%; padding: 15px; margin-top: 10px; border: none; border-radius: 6px; font-size: 1.1em; font-weight: bold; cursor: pointer; color: #fff; transition: 0.2s; }
+        .container { max-width: 850px; margin: 0 auto; background: rgba(255, 255, 255, 0.95); padding: 35px; border-radius: 8px; box-shadow: 0 8px 30px rgba(0, 56, 118, 0.2); border: 2px solid #003876; }
+        h1, h2, h3 { text-align: center; color: #003876; font-weight: 800; margin-bottom: 25px; }
+        
+        /* 버튼 스타일 */
+        .btn { display: inline-block; width: 100%; padding: 15px; margin-top: 10px; border: none; border-radius: 6px; font-size: 1.1em; font-weight: bold; cursor: pointer; color: #fff; transition: 0.2s; text-align: center; box-sizing: border-box; }
         .btn-primary { background: #003876; }
         .btn-primary:hover { background: #0050a0; }
         .btn-secondary { background: #64748b; }
         .btn-danger { background: #8B0000; }
         .btn-success { background: #1e7e34; }
+        .btn-outline { background: transparent; border: 2px solid #003876; color: #003876; }
+        .btn-outline:hover { background: #003876; color: #fff; }
+        .btn-row { display: flex; gap: 10px; margin-top: 10px; }
         
-        /* 카테고리/과목 선택 영역 */
+        /* 카테고리/입력 폼 */
         .selector-group { display: flex; gap: 10px; margin-bottom: 20px; }
         .selector-box { flex: 1; }
         .selector-box label { font-weight: bold; display: block; margin-bottom: 5px; color: #003876; font-size: 0.9em; }
-        select { width: 100%; padding: 12px; font-size: 1em; border-radius: 4px; border: 1px solid #cbd5e1; background: white; color: #334155; }
-        select:focus { border-color: #003876; outline: none; }
+        select, input[type="text"], input[type="number"] { width: 100%; padding: 12px; font-size: 1em; border-radius: 4px; border: 1px solid #cbd5e1; background: white; color: #334155; box-sizing: border-box; }
+        select:focus, input:focus { border-color: #003876; outline: none; }
         
-        .settings-box { background: #f8fafc; padding: 20px; border-radius: 6px; margin-bottom: 20px; text-align: center; border: 1px solid #cbd5e1; }
-        .progress { text-align: right; color: #64748b; font-size: 0.95em; margin-bottom: 20px; font-weight: bold; }
-        .question-text { font-size: 1.25em; font-weight: bold; margin-bottom: 15px; }
+        /* 대시보드 상태 박스 */
+        .settings-box { background: #f8fafc; padding: 20px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #cbd5e1; }
+        .lr-bar-container { background: #e2e8f0; border-radius: 10px; height: 20px; overflow: hidden; margin-top: 10px; }
+        .lr-bar { background: #1e7e34; height: 100%; width: 0%; transition: width 0.5s ease; }
+        
+        /* 검색 & 북마크 영역 */
+        .search-results { max-height: 200px; overflow-y: auto; background: white; border: 1px solid #cbd5e1; border-radius: 4px; margin-top: 5px; display: none; }
+        .search-item { padding: 10px; border-bottom: 1px solid #e2e8f0; cursor: pointer; font-size: 0.9em; }
+        .search-item:hover { background: #f1f5f9; }
+        .folder-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+        .folder-tag { background: #e0e7ff; color: #3730a3; padding: 8px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; border: 1px solid #c7d2fe; font-size: 0.9em; }
+        .folder-tag:hover { background: #c7d2fe; }
+
+        /* 퀴즈 UI */
+        .quiz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .progress { color: #64748b; font-weight: bold; }
+        .bookmark-btn { background: none; border: none; font-size: 1.5em; cursor: pointer; color: #fbbf24; }
+        .question-text { font-size: 1.25em; font-weight: bold; margin-bottom: 15px; line-height: 1.4; }
         .options { display: flex; flex-direction: column; gap: 10px; }
-        .option-btn { padding: 14px 18px; border: 2px solid #cbd5e1; border-radius: 6px; background: white; cursor: pointer; text-align: left; transition: 0.2s; }
+        .option-btn { padding: 14px 18px; border: 2px solid #cbd5e1; border-radius: 6px; background: white; cursor: pointer; text-align: left; transition: 0.2s; font-size: 1em; }
         .option-btn.selected { background: #003876; color: white; border-color: #003876; }
-        .option-btn.correct { background: #1e7e34; color: white; }
-        .option-btn.wrong { background: #b91c1c; color: white; }
-        .feedback { margin-top: 25px; padding: 18px; border-radius: 6px; display: none; }
-        .feedback.correct { background: #d4edda; color: #155724; }
-        .feedback.wrong { background: #f8d7da; color: #721c24; }
+        .option-btn.correct { background: #1e7e34; color: white; border-color: #1e7e34; }
+        .option-btn.wrong { background: #b91c1c; color: white; border-color: #b91c1c; }
+        
+        /* 피드백 & 해설 */
+        .feedback { margin-top: 20px; padding: 18px; border-radius: 6px; display: none; }
+        .feedback.correct { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .feedback.wrong { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .feedback.info { background: #e2e8f0; border: 1px solid #cbd5e1; color: #334155; display: block; }
+        .explanation-text { margin-top: 10px; line-height: 1.5; font-size: 0.95em; white-space: pre-wrap; }
+
+        /* 리뷰 모드 (해설 모드 / 결과창 스크롤) */
+        .review-list { max-height: 500px; overflow-y: auto; padding-right: 10px; }
+        .review-card { background: #f8fafc; border: 1px solid #cbd5e1; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
+        .review-card .q-title { font-weight: bold; font-size: 1.1em; margin-bottom: 10px; color: #003876; }
+        .review-card .ans-comparison { margin: 10px 0; padding: 10px; background: white; border-radius: 4px; border-left: 4px solid #b91c1c; }
+        
         #secret-btn { position: fixed; bottom: 15px; right: 15px; width: 30px; height: 30px; background: transparent; border: none; cursor: pointer; opacity: 0.05; z-index: 9999; }
         
-        /* 고대 테마 이스터에그 */
+        /* 이스터에그: 고려대 테마 */
         body.korea-theme { background-image: url('./images/korea_bg.png'); background-color: #820024; }
         body.korea-theme .container { border-color: #820024; }
-        body.korea-theme h1, body.korea-theme h2, body.korea-theme .selector-box label { color: #820024; }
+        body.korea-theme h1, body.korea-theme h2, body.korea-theme h3, body.korea-theme .selector-box label { color: #820024; }
         body.korea-theme .btn-primary { background: #820024; }
+        body.korea-theme .btn-primary:hover { background: #5a0018; }
+        body.korea-theme .btn-outline { border-color: #820024; color: #820024; }
+        body.korea-theme .btn-outline:hover { background: #820024; color: #fff; }
     </style>
 </head>
 <body>
@@ -63,47 +97,86 @@
             <div class="selector-box">
                 <label>과목</label>
                 <select id="subject-select" onchange="app.onSubjectChange()">
-                    </select>
+                </select>
             </div>
         </div>
 
-        <div id="status-box" class="settings-box">
-            <p><strong id="display-subject-name">과목</strong> 데이터: <strong id="total-db-count">0</strong>문항</p>
-            <p>내 오답 노트: <strong id="wrong-db-count">0</strong>문항</p>
-            <hr style="margin: 15px 0; border: 0; border-top: 1px solid #cbd5e1;">
-            <label for="question-count">응시 문항 수: </label>
-            <input type="number" id="question-count" value="10" min="1" style="width: 60px; padding: 5px; text-align: center;">
+        <div class="settings-box">
+            <h3>대시보드</h3>
+            <p style="margin-bottom: 10px;"><strong id="display-subject-name">과목</strong> 보유 문항: <strong id="total-db-count">0</strong>개</p>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; font-size: 0.9em;">동적 학습률 (완벽 숙지율)</label>
+                <div class="lr-bar-container">
+                    <div id="learning-rate-bar" class="lr-bar"></div>
+                </div>
+                <div style="text-align: right; font-size: 0.85em; margin-top: 5px; color: #64748b;"><span id="learning-rate-text">0</span>% (<span id="check-count">0</span> / <span id="total-db-count-lr">0</span>)</div>
+            </div>
+
+            <div style="text-align: left; margin-bottom: 20px;">
+                <label style="font-weight: bold; font-size: 0.9em; display: block; margin-bottom: 5px;">문제 검색</label>
+                <input type="text" id="search-input" placeholder="키워드를 입력하세요..." onkeyup="app.searchQuestions()">
+                <div id="search-results" class="search-results"></div>
+            </div>
+
+            <div style="text-align: left;">
+                <label style="font-weight: bold; font-size: 0.9em; display: block;">내 북마크 폴더</label>
+                <div id="bookmark-folders" class="folder-list">
+                    <span style="font-size: 0.9em; color: #94a3b8;">저장된 폴더가 없습니다.</span>
+                </div>
+            </div>
         </div>
 
-        <div id="action-buttons">
-            <button class="btn btn-primary" onclick="app.startQuiz('random')">실전 모의고사 응시</button>
-            <button class="btn btn-secondary" onclick="app.startQuiz('all')">전체 문항 순차 학습</button>
-            <button id="home-retry-wrong-btn" class="btn btn-danger" style="display:none;" onclick="app.startWrongQuiz()">오답 노트 응시</button>
+        <div>
+            <label style="font-weight: bold; font-size: 0.9em;">응시 문항 수:</label>
+            <input type="number" id="question-count" value="10" min="1" style="width: 80px; padding: 8px; margin-bottom: 15px; display: inline-block;">
+            
+            <button class="btn btn-primary" onclick="app.startQuiz('practice')">✏️ 연습 모드 (즉각 피드백)</button>
+            <button class="btn btn-danger" onclick="app.startQuiz('exam')">📝 시험 모드 (실전 평가)</button>
+            <button class="btn btn-outline" onclick="app.startReviewMode()">📖 해설 모드 (전체 훑어보기)</button>
         </div>
     </div>
 
     <div id="quiz-area" style="display: none;">
-        <div class="progress">진행률: <span id="current-num">1</span> / <span id="total-num">10</span></div>
+        <div class="quiz-header">
+            <div class="progress"><span id="mode-badge" style="background:#e2e8f0; padding:4px 8px; border-radius:4px; margin-right:10px; font-size:0.8em;">모드</span> 문항: <span id="current-num">1</span> / <span id="total-num">10</span></div>
+            <button class="bookmark-btn" onclick="app.addBookmark()" title="북마크 저장">⭐</button>
+        </div>
         <div class="question-box">
             <div id="question-text" class="question-text"></div>
             <div id="image-container"></div>
         </div>
         <div id="options-container" class="options"></div>
-        <button id="submit-btn" class="btn btn-primary" onclick="app.checkAnswer()">답안 제출</button>
+        
         <div id="feedback-box" class="feedback">
             <div id="feedback-text" style="font-weight: bold;"></div>
-            <div id="explanation-text" style="margin-top: 10px;"></div>
+            <div id="explanation-text" class="explanation-text"></div>
         </div>
-        <button id="next-btn" class="btn btn-success" style="display:none;" onclick="app.nextQuestion()">다음 문항</button>
+        
+        <div style="margin-top: 20px;">
+            <button id="next-btn" class="btn btn-primary" style="display:none;" onclick="app.nextQuestion()">다음 문항</button>
+        </div>
+    </div>
+
+    <div id="study-area" style="display: none;">
+        <div class="quiz-header">
+            <div class="progress">📖 전체 해설 모드 (<span id="study-total-num">0</span>문항)</div>
+            <button class="btn btn-secondary" style="width: auto; padding: 8px 15px;" onclick="app.goHome()">돌아가기</button>
+        </div>
+        <div id="study-list" class="review-list"></div>
     </div>
 
     <div id="result-screen" style="display: none;">
-        <h2>평가 결과</h2>
-        <div class="result-stats" style="text-align: center; padding: 20px; background: #f8fafc; border-radius: 8px; margin: 20px 0;">
-            성적: <strong id="correct-count" style="font-size: 1.5em; color: #1e7e34;">0</strong> / <span id="result-total-count">0</span>
-            <div id="score-message" style="margin-top: 10px; font-weight: bold; color: #003876;"></div>
+        <h2>시험 결과</h2>
+        <div style="text-align: center; padding: 20px; background: #f8fafc; border-radius: 8px; margin-bottom: 20px; border: 1px solid #cbd5e1;">
+            점수: <strong id="correct-count" style="font-size: 2em; color: #003876;">0</strong> <span style="font-size: 1.2em; color: #64748b;">/ <span id="result-total-count">0</span></span>
+            <div id="score-message" style="margin-top: 10px; font-weight: bold; color: #1e7e34;"></div>
         </div>
-        <button class="btn btn-primary" onclick="app.goHome()">다른 과목 선택</button>
+        
+        <h3 style="text-align: left; font-size: 1.2em; margin-bottom: 10px; color: #b91c1c;">오답 노트 리뷰</h3>
+        <div id="wrong-review-list" class="review-list"></div>
+        
+        <button class="btn btn-primary" style="margin-top: 20px;" onclick="app.goHome()">대시보드로 돌아가기</button>
     </div>
 </div>
 
@@ -111,7 +184,6 @@
     const $ = (id) => document.getElementById(id);
 
     const app = {
-        // [데이터 관리] 카테고리별로 과목과 URL을 정리합니다.
         SHEET_DATA: {
             "내신": {
                 "임상화학": "https://docs.google.com/spreadsheets/d/e/2PACX-1vR9G8mJqpsn9xWmhg_2LCAWbfi2vsZTxRdq77NStrnzYHG3HCfgpatnlFh1Y6gP0IblU3EVJMPYr6_0/pub?output=csv",
@@ -123,19 +195,37 @@
 
         currentCategory: "내신",
         currentSubject: "",
-        allQuizData: [],
-        currentQuizPool: [],
-        wrongQuestions: [],
+        allQuizData: [],       // 현재 선택된 과목의 전체 데이터
+        currentQuizPool: [],   // 실제 풀이할 문제 배열
+        
+        // 상태 관리
+        learningProgress: {},  // { "과목명": { "문제텍스트": true(Check)/false(Non) } }
+        bookmarks: {},         // { "폴더명": [question_object, ...] }
+        examWrongAnswers: [],  // 시험 모드 종료 후 리뷰용: {q, userAns}
+        
+        // 진행 상태
+        currentMode: "",       // 'practice', 'exam'
         currentIndex: 0,
         correctAnswers: 0,
         selectedOption: null,
 
         init() {
             this.loadTheme();
-            this.onCategoryChange(); // 초기 카테고리에 따른 과목 세팅
+            this.loadStorageData();
+            this.onCategoryChange();
         },
 
-        // 카테고리 변경 시 과목 드롭다운 업데이트
+        loadStorageData() {
+            const lp = localStorage.getItem("clinical_learning_progress");
+            this.learningProgress = lp ? JSON.parse(lp) : {};
+            
+            const bm = localStorage.getItem("clinical_bookmarks");
+            this.bookmarks = bm ? JSON.parse(bm) : {};
+        },
+
+        saveProgress() { localStorage.setItem("clinical_learning_progress", JSON.stringify(this.learningProgress)); },
+        saveBookmarks() { localStorage.setItem("clinical_bookmarks", JSON.stringify(this.bookmarks)); },
+
         onCategoryChange() {
             this.currentCategory = $("category-select").value;
             const subjects = Object.keys(this.SHEET_DATA[this.currentCategory]);
@@ -148,91 +238,197 @@
                 opt.innerText = sub;
                 subjectSelect.appendChild(opt);
             });
-            
             this.onSubjectChange();
         },
 
-        // 과목 변경 시 데이터 로드
         onSubjectChange() {
             this.currentSubject = $("subject-select").value;
             $("display-subject-name").innerText = this.currentSubject;
             
+            // 데이터 초기화
+            this.allQuizData = [];
+            if (!this.learningProgress[this.currentSubject]) {
+                this.learningProgress[this.currentSubject] = {};
+            }
+            
             const url = this.SHEET_DATA[this.currentCategory][this.currentSubject];
-            if (url && url.startsWith("http")) {
-                this.loadWrongQuestions();
-                this.fetchData(url);
+            if (url) {
+                Papa.parse(url, {
+                    download: true,
+                    header: true,
+                    complete: (results) => {
+                        // 빈 문제 제외
+                        this.allQuizData = results.data.filter(row => row['문제'] && row['문제'].trim());
+                        this.updateDashboardUI();
+                    }
+                });
             } else {
-                this.allQuizData = [];
-                this.updateHomeUI();
+                this.updateDashboardUI();
             }
         },
 
-        fetchData(url) {
-            Papa.parse(url, {
-                download: true,
-                header: true,
-                complete: (results) => {
-                    this.allQuizData = results.data.filter(row => row['문제'] && row['문제'].trim());
-                    this.updateHomeUI();
-                }
+        updateDashboardUI() {
+            const total = this.allQuizData.length;
+            $("total-db-count").innerText = total;
+            $("total-db-count-lr").innerText = total;
+            
+            // 학습률 계산
+            const subjectProgress = this.learningProgress[this.currentSubject] || {};
+            let checkCount = 0;
+            this.allQuizData.forEach(q => {
+                if (subjectProgress[q['문제']] === true) checkCount++;
+            });
+            
+            $("check-count").innerText = checkCount;
+            const rate = total === 0 ? 0 : Math.round((checkCount / total) * 100);
+            $("learning-rate-text").innerText = rate;
+            $("learning-rate-bar").style.width = rate + "%";
+
+            // 북마크 폴더 렌더링
+            this.renderBookmarkFolders();
+        },
+
+        renderBookmarkFolders() {
+            const container = $("bookmark-folders");
+            container.innerHTML = "";
+            const folders = Object.keys(this.bookmarks);
+            if (folders.length === 0) {
+                container.innerHTML = `<span style="font-size: 0.9em; color: #94a3b8;">저장된 폴더가 없습니다.</span>`;
+                return;
+            }
+            folders.forEach(folder => {
+                const tag = document.createElement("span");
+                tag.className = "folder-tag";
+                tag.innerText = `📂 ${folder} (${this.bookmarks[folder].length})`;
+                tag.onclick = () => this.startQuizFromBookmark(folder);
+                container.appendChild(tag);
             });
         },
 
-        updateHomeUI() {
-            $("total-db-count").innerText = this.allQuizData.length;
-            $("wrong-db-count").innerText = this.wrongQuestions.length;
-            $("home-retry-wrong-btn").style.display = this.wrongQuestions.length > 0 ? "block" : "none";
+        // 문제 검색 로직
+        searchQuestions() {
+            const keyword = $("search-input").value.toLowerCase().trim();
+            const resContainer = $("search-results");
+            
+            if (keyword.length < 2) {
+                resContainer.style.display = "none";
+                return;
+            }
+
+            const results = this.allQuizData.filter(q => 
+                q['문제'].toLowerCase().includes(keyword) || 
+                (q['해설'] && q['해설'].toLowerCase().includes(keyword))
+            );
+
+            resContainer.innerHTML = "";
+            if (results.length === 0) {
+                resContainer.innerHTML = `<div class="search-item" style="color:#94a3b8;">결과가 없습니다.</div>`;
+            } else {
+                results.slice(0, 15).forEach((q, idx) => {
+                    const div = document.createElement("div");
+                    div.className = "search-item";
+                    div.innerHTML = `<strong>[${this.currentSubject}]</strong> ${q['문제']}`;
+                    // 클릭 시 해당 문제만 연습 모드로 단독 실행
+                    div.onclick = () => {
+                        this.currentQuizPool = [q];
+                        this.currentMode = "practice";
+                        $("search-input").value = "";
+                        resContainer.style.display = "none";
+                        this.launchQuiz();
+                    };
+                    resContainer.appendChild(div);
+                });
+            }
+            resContainer.style.display = "block";
         },
 
-        // 과목별 고유 키 (카테고리 포함)로 오답 저장
-        getStoreKey() { return `wrong_${this.currentCategory}_${this.currentSubject}`; },
-        
-        saveWrongQuestions() { localStorage.setItem(this.getStoreKey(), JSON.stringify(this.wrongQuestions)); },
-        
-        loadWrongQuestions() {
-            const data = localStorage.getItem(this.getStoreKey());
-            this.wrongQuestions = data ? JSON.parse(data) : [];
+        // 북마크 추가 로직
+        addBookmark() {
+            const q = this.currentQuizPool[this.currentIndex];
+            const folderName = prompt("저장할 북마크 폴더명을 입력하세요 (예: 자주 틀리는 문제, 공식 암기 등):", "기본 폴더");
+            if (!folderName) return;
+
+            if (!this.bookmarks[folderName]) this.bookmarks[folderName] = [];
+            
+            // 중복 검사
+            const isExist = this.bookmarks[folderName].some(bq => bq['문제'] === q['문제']);
+            if (!isExist) {
+                this.bookmarks[folderName].push(q);
+                this.saveBookmarks();
+                alert(`'${folderName}' 폴더에 저장되었습니다.`);
+                this.renderBookmarkFolders();
+            } else {
+                alert("이미 해당 폴더에 존재하는 문제입니다.");
+            }
         },
 
-        // [이하 퀴즈 핵심 로직은 이전과 동일한 app 구조 유지]
-        showScreen(id) { ["start-screen", "quiz-area", "result-screen"].forEach(s => $(s).style.display = (s===id?'block':'none')); },
-        
+        showScreen(id) {
+            ["start-screen", "quiz-area", "study-area", "result-screen"].forEach(s => $(s).style.display = (s===id?'block':'none'));
+        },
+
+        // 퀴즈 시작 분기
         startQuiz(mode) {
-            if (this.allQuizData.length === 0) return alert("데이터가 없습니다.");
-            this.currentQuizPool = (mode === 'random') 
-                ? this.allQuizData.sort(()=>Math.random()-0.5).slice(0, Math.min(parseInt($("question-count").value), this.allQuizData.length))
-                : this.allQuizData.slice();
-            this.launch();
+            if (this.allQuizData.length === 0) return alert("문제가 로드되지 않았습니다.");
+            
+            this.currentMode = mode;
+            let count = parseInt($("question-count").value) || 10;
+            count = Math.min(count, this.allQuizData.length);
+            
+            // 랜덤 셔플 후 추출
+            this.currentQuizPool = [...this.allQuizData].sort(() => Math.random() - 0.5).slice(0, count);
+            this.launchQuiz();
         },
 
-        startWrongQuiz() { this.currentQuizPool = this.wrongQuestions.sort(()=>Math.random()-0.5); this.launch(); },
+        startQuizFromBookmark(folderName) {
+            this.currentQuizPool = [...this.bookmarks[folderName]].sort(() => Math.random() - 0.5);
+            this.currentMode = "practice"; // 북마크는 연습모드가 기본
+            this.launchQuiz();
+        },
 
-        launch() {
-            this.currentIndex = 0; this.correctAnswers = 0;
+        launchQuiz() {
+            this.currentIndex = 0;
+            this.correctAnswers = 0;
+            this.examWrongAnswers = [];
+            
             $("total-num").innerText = this.currentQuizPool.length;
+            $("mode-badge").innerText = this.currentMode === 'exam' ? "📝 시험모드" : "✏️ 연습모드";
+            
             this.showScreen("quiz-area");
-            this.loadQuestion();
+            this.renderQuestion();
         },
 
-        loadQuestion() {
+        renderQuestion() {
             const q = this.currentQuizPool[this.currentIndex];
             this.selectedOption = null;
+            
             $("current-num").innerText = this.currentIndex + 1;
             $("question-text").innerText = q['문제'];
-            $("image-container").innerHTML = (q['이미지'] && q['이미지'].trim()) ? `<img src="./images/${q['이미지'].trim()}" style="max-width:100%; border:1px solid #cbd5e1; margin-bottom:15px;" onerror="this.style.display='none'">` : '';
+            $("image-container").innerHTML = (q['이미지'] && q['이미지'].trim()) 
+                ? `<img src="./images/${q['이미지'].trim()}" style="max-width:100%; border:1px solid #cbd5e1; margin-bottom:15px;" onerror="this.style.display='none'">` : '';
             
             const optsCont = $("options-container");
             optsCont.innerHTML = "";
+            
             ['A','B','C','D','E'].forEach(opt => {
                 const val = q[`보기${opt}`];
                 if (val && val.trim()) {
                     const btn = document.createElement("button");
                     btn.className = "option-btn";
                     btn.innerText = `${opt}) ${val}`;
+                    
                     btn.onclick = () => {
+                        if (this.selectedOption) return; // 이미 선택한 경우 막기 (연습모드 방어용)
+                        
                         document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
                         btn.classList.add('selected');
                         this.selectedOption = opt;
+                        
+                        if (this.currentMode === 'practice') {
+                            this.evaluatePractice(btn);
+                        } else {
+                            // 시험 모드는 바로 다음 문제로 넘김 (또는 Next 버튼 표시)
+                            this.evaluateExam(opt);
+                        }
                     };
                     optsCont.appendChild(btn);
                 }
@@ -240,52 +436,147 @@
             
             $("feedback-box").style.display = 'none';
             $("next-btn").style.display = 'none';
-            $("submit-btn").style.display = 'block';
         },
 
-        checkAnswer() {
-            if (!this.selectedOption) return alert("답안을 선택하세요.");
+        // 학습률 업데이트 공통 로직
+        updateLearningRate(q, isCorrect) {
+            if (!this.learningProgress[this.currentSubject]) {
+                this.learningProgress[this.currentSubject] = {};
+            }
+            // 맞추면 true, 예전에 맞췄어도 이번에 틀리면 false (강등)
+            this.learningProgress[this.currentSubject][q['문제']] = isCorrect;
+            this.saveProgress();
+        },
+
+        // 연습 모드: 클릭 즉시 피드백
+        evaluatePractice(selectedBtn) {
             const q = this.currentQuizPool[this.currentIndex];
             const isCorrect = this.selectedOption === q['정답'].trim().toUpperCase();
+            
+            this.updateLearningRate(q, isCorrect);
 
             document.querySelectorAll('.option-btn').forEach(btn => {
-                btn.disabled = true;
-                if (btn.innerText.startsWith(q['정답'])) btn.classList.add('correct');
-                else if (btn.classList.contains('selected') && !isCorrect) btn.classList.add('wrong');
+                btn.disabled = true; // 중복 클릭 방지
+                if (btn.innerText.startsWith(q['정답'])) {
+                    btn.classList.add('correct'); // 정답은 초록색 표시
+                } else if (btn === selectedBtn && !isCorrect) {
+                    btn.classList.add('wrong'); // 오답은 빨간색 표시
+                }
             });
+
+            $("feedback-text").innerText = isCorrect ? "⭕ 정답입니다!" : `❌ 오답입니다. (정답: ${q['정답']})`;
+            $("feedback-box").className = `feedback ${isCorrect ? 'correct' : 'wrong'}`;
+            $("explanation-text").innerText = q['해설'] || "해설이 없습니다.";
+            $("feedback-box").style.display = 'block';
+            
+            $("next-btn").style.display = 'block';
+            $("next-btn").innerText = (this.currentIndex === this.currentQuizPool.length - 1) ? "종료하기" : "다음 문항";
+        },
+
+        // 시험 모드: 클릭 시 기록 후 바로 다음 문항 (또는 잠시 딜레이)
+        evaluateExam(selectedOpt) {
+            const q = this.currentQuizPool[this.currentIndex];
+            const isCorrect = selectedOpt === q['정답'].trim().toUpperCase();
+            
+            this.updateLearningRate(q, isCorrect);
 
             if (isCorrect) {
                 this.correctAnswers++;
-                this.wrongQuestions = this.wrongQuestions.filter(wq => wq['문제'] !== q['문제']);
             } else {
-                if (!this.wrongQuestions.some(wq => wq['문제'] === q['문제'])) this.wrongQuestions.push(q);
+                this.examWrongAnswers.push({ question: q, userAns: selectedOpt });
             }
 
-            this.saveWrongQuestions();
-            $("feedback-text").innerText = isCorrect ? "⭕ 정답입니다." : `❌ 오답입니다. (정답: ${q['정답']})`;
-            $("feedback-box").className = `feedback ${isCorrect?'correct':'wrong'}`;
-            $("explanation-text").innerText = q['해설'] || "";
-            $("feedback-box").style.display = 'block';
-            $("submit-btn").style.display = 'none';
-            $("next-btn").style.display = 'block';
-            $("next-btn").innerText = (this.currentIndex === this.currentQuizPool.length - 1) ? "결과 보기" : "다음 문항";
+            // 시험 모드는 바로 다음 문제로 넘김 (UI 흐름 방해 최소화 위해 0.3초 대기)
+            setTimeout(() => {
+                this.nextQuestion();
+            }, 300);
         },
 
         nextQuestion() {
             this.currentIndex++;
-            if (this.currentIndex < this.currentQuizPool.length) this.loadQuestion();
-            else this.finish();
+            if (this.currentIndex < this.currentQuizPool.length) {
+                this.renderQuestion();
+            } else {
+                if (this.currentMode === 'exam') this.finishExam();
+                else this.goHome(); // 연습모드 종료 시 홈으로
+            }
         },
 
-        finish() {
+        // 시험 모드 결과창 렌더링
+        finishExam() {
             this.showScreen("result-screen");
             $("correct-count").innerText = this.correctAnswers;
             $("result-total-count").innerText = this.currentQuizPool.length;
+            
             const ratio = this.correctAnswers / this.currentQuizPool.length;
-            $("score-message").innerText = ratio === 1 ? "Perfect! 연세의 자랑입니다." : ratio >= 0.7 ? "Excellent! 합격권입니다." : "학습이 더 필요합니다.";
+            $("score-message").innerText = ratio === 1 ? "Perfect! 완벽합니다." : ratio >= 0.7 ? "합격권입니다. 오답을 확인하세요." : "복습이 필요합니다.";
+            
+            // 오답 스크롤 리스트 렌더링
+            const reviewCont = $("wrong-review-list");
+            reviewCont.innerHTML = "";
+            
+            if (this.examWrongAnswers.length === 0) {
+                reviewCont.innerHTML = "<p style='color:#1e7e34; font-weight:bold;'>틀린 문제가 없습니다!</p>";
+                return;
+            }
+
+            this.examWrongAnswers.forEach((wrongItem, idx) => {
+                const q = wrongItem.question;
+                const div = document.createElement("div");
+                div.className = "review-card";
+                
+                let imgHtml = (q['이미지'] && q['이미지'].trim()) ? `<img src="./images/${q['이미지'].trim()}" style="max-height:100px; display:block; margin-bottom:10px;" onerror="this.style.display='none'">` : '';
+                
+                div.innerHTML = `
+                    <div class="q-title">${idx + 1}. ${q['문제']}</div>
+                    ${imgHtml}
+                    <div class="ans-comparison">
+                        <span style="color:#b91c1c;">나의 답: ${wrongItem.userAns}) ${q[`보기${wrongItem.userAns}`]}</span><br>
+                        <span style="color:#1e7e34;">정답: ${q['정답']}) ${q[`보기${q['정답']}`]}</span>
+                    </div>
+                    <div class="feedback info">
+                        <strong>📖 해설:</strong><br>
+                        <span class="explanation-text">${q['해설']}</span>
+                    </div>
+                `;
+                reviewCont.appendChild(div);
+            });
         },
 
-        goHome() { this.updateHomeUI(); this.showScreen("start-screen"); },
+        // 해설 모드 (전체 훑어보기)
+        startReviewMode() {
+            if (this.allQuizData.length === 0) return alert("문제가 로드되지 않았습니다.");
+            
+            $("study-total-num").innerText = this.allQuizData.length;
+            const container = $("study-list");
+            container.innerHTML = "";
+            
+            this.allQuizData.forEach((q, idx) => {
+                const div = document.createElement("div");
+                div.className = "review-card";
+                
+                let imgHtml = (q['이미지'] && q['이미지'].trim()) ? `<img src="./images/${q['이미지'].trim()}" style="max-width:100%; display:block; margin-bottom:10px;" onerror="this.style.display='none'">` : '';
+                
+                div.innerHTML = `
+                    <div class="q-title">${idx + 1}. ${q['문제']}</div>
+                    ${imgHtml}
+                    <div style="margin-bottom: 10px; color: #1e7e34; font-weight:bold;">
+                        정답: ${q['정답']}) ${q[`보기${q['정답']}`]}
+                    </div>
+                    <div class="feedback info" style="display:block;">
+                        <span class="explanation-text">${q['해설']}</span>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+            
+            this.showScreen("study-area");
+        },
+
+        goHome() { 
+            this.updateDashboardUI(); 
+            this.showScreen("start-screen"); 
+        },
 
         toggleTheme() {
             document.body.classList.toggle("korea-theme");
