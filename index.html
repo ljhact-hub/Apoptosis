@@ -145,7 +145,7 @@
     <div id="quiz-area" style="display: none;">
         <div class="quiz-header">
             <div class="progress"><span id="mode-badge" style="background:#e2e8f0; padding:4px 8px; border-radius:4px; margin-right:10px; font-size:0.8em;">모드</span> 문항: <span id="current-num">1</span> / <span id="total-num">10</span></div>
-            <button class="bookmark-btn" onclick="app.addBookmark()" title="북마크 저장">⭐</button>
+            <button id="quiz-bookmark-btn" class="bookmark-btn" onclick="app.toggleCurrentBookmark()" title="북마크 토글">☆</button>
         </div>
         <div class="question-box">
             <div id="question-text" class="question-text"></div>
@@ -308,6 +308,53 @@
             ["start-screen", "quiz-area", "study-area", "result-screen", "search-screen"].forEach(s => $(s).style.display = (s===id?'block':'none'));
         },
 
+        // --- 북마크 상태 추적 및 관리 (토글 로직) ---
+        isBookmarked(q) {
+            for (const folder in this.bookmarks) {
+                if (this.bookmarks[folder].some(bq => bq['문제'] === q['문제'])) {
+                    return true;
+                }
+            }
+            return false;
+        },
+
+        removeBookmark(q) {
+            for (const folder in this.bookmarks) {
+                this.bookmarks[folder] = this.bookmarks[folder].filter(bq => bq['문제'] !== q['문제']);
+                // 빈 폴더 삭제
+                if (this.bookmarks[folder].length === 0) {
+                    delete this.bookmarks[folder];
+                }
+            }
+            this.saveBookmarks();
+        },
+
+        toggleBookmark(q, btnElement) {
+            if (this.isBookmarked(q)) {
+                if(confirm("이 문제를 북마크에서 삭제하시겠습니까?")) {
+                    this.removeBookmark(q);
+                    btnElement.innerText = "☆";
+                    this.renderBookmarkFolders(); // 대시보드 업데이트
+                }
+            } else {
+                const folderName = prompt("저장할 북마크 폴더명을 입력하세요 (예: 헷갈리는 문제, 공식 암기 등):", "기본 폴더");
+                if (!folderName) return;
+
+                if (!this.bookmarks[folderName]) this.bookmarks[folderName] = [];
+                this.bookmarks[folderName].push(q);
+                this.saveBookmarks();
+                btnElement.innerText = "⭐";
+                this.renderBookmarkFolders(); // 대시보드 업데이트
+                alert(`'${folderName}' 폴더에 저장되었습니다.`);
+            }
+        },
+
+        // --- 퀴즈 화면의 북마크 토글 헬퍼 ---
+        toggleCurrentBookmark() {
+            const q = this.currentQuizPool[this.currentIndex];
+            this.toggleBookmark(q, $("quiz-bookmark-btn"));
+        },
+
         // --- 공통 리뷰 카드 생성 헬퍼 ---
         createReviewCard(q, indexText = "") {
             const div = document.createElement("div");
@@ -326,8 +373,10 @@
             });
             optionsHtml += '</div>';
 
+            const starIcon = this.isBookmarked(q) ? "⭐" : "☆";
+
             div.innerHTML = `
-                <button class="card-bookmark-btn" title="북마크 저장" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5em; cursor: pointer; color: #fbbf24;">⭐</button>
+                <button class="card-bookmark-btn" title="북마크 토글" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5em; cursor: pointer; color: #fbbf24;">${starIcon}</button>
                 <div class="q-title">${indexText}Q. ${q['문제']}</div>
                 ${imgHtml}
                 ${optionsHtml}
@@ -337,7 +386,7 @@
                 </div>
             `;
             
-            div.querySelector('.card-bookmark-btn').onclick = () => this.addBookmarkSpecific(q);
+            div.querySelector('.card-bookmark-btn').onclick = (e) => this.toggleBookmark(q, e.target);
             return div;
         },
 
@@ -370,28 +419,6 @@
                     resContainer.appendChild(this.createReviewCard(q));
                 });
             }
-        },
-
-        // --- 북마크 추가 로직 ---
-        addBookmarkSpecific(q) {
-            const folderName = prompt("저장할 북마크 폴더명을 입력하세요 (예: 자주 틀리는 문제, 공식 암기 등):", "기본 폴더");
-            if (!folderName) return;
-
-            if (!this.bookmarks[folderName]) this.bookmarks[folderName] = [];
-            
-            const isExist = this.bookmarks[folderName].some(bq => bq['문제'] === q['문제']);
-            if (!isExist) {
-                this.bookmarks[folderName].push(q);
-                this.saveBookmarks();
-                alert(`'${folderName}' 폴더에 저장되었습니다.`);
-                this.renderBookmarkFolders();
-            } else {
-                alert("이미 해당 폴더에 존재하는 문제입니다.");
-            }
-        },
-
-        addBookmark() {
-            this.addBookmarkSpecific(this.currentQuizPool[this.currentIndex]);
         },
 
         // --- 퀴즈 풀이 진입 로직 ---
@@ -433,6 +460,9 @@
             $("image-container").innerHTML = (q['이미지'] && q['이미지'].trim()) 
                 ? `<img src="./images/${q['이미지'].trim()}" style="max-width:100%; border:1px solid #cbd5e1; margin-bottom:15px;" onerror="this.style.display='none'">` : '';
             
+            // 현재 문항의 북마크 상태 표시
+            $("quiz-bookmark-btn").innerText = this.isBookmarked(q) ? "⭐" : "☆";
+
             const optsCont = $("options-container");
             optsCont.innerHTML = "";
             
@@ -546,8 +576,10 @@
                 
                 let imgHtml = (q['이미지'] && q['이미지'].trim()) ? `<img src="./images/${q['이미지'].trim()}" style="max-height:100px; display:block; margin-bottom:10px;" onerror="this.style.display='none'">` : '';
                 
+                const starIcon = this.isBookmarked(q) ? "⭐" : "☆";
+
                 div.innerHTML = `
-                    <button class="card-bookmark-btn" title="북마크 저장" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5em; cursor: pointer; color: #fbbf24;">⭐</button>
+                    <button class="card-bookmark-btn" title="북마크 토글" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5em; cursor: pointer; color: #fbbf24;">${starIcon}</button>
                     <div class="q-title" style="padding-right: 35px;">${idx + 1}. ${q['문제']}</div>
                     ${imgHtml}
                     <div class="ans-comparison">
@@ -559,7 +591,7 @@
                         <span class="explanation-text">${q['해설']}</span>
                     </div>
                 `;
-                div.querySelector('.card-bookmark-btn').onclick = () => this.addBookmarkSpecific(q);
+                div.querySelector('.card-bookmark-btn').onclick = (e) => this.toggleBookmark(q, e.target);
                 reviewCont.appendChild(div);
             });
         },
