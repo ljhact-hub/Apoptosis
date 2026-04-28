@@ -34,10 +34,7 @@
         .lr-bar-container { background: #e2e8f0; border-radius: 10px; height: 20px; overflow: hidden; margin-top: 10px; }
         .lr-bar { background: #1e7e34; height: 100%; width: 0%; transition: width 0.5s ease; }
         
-        /* 검색 & 북마크 영역 */
-        .search-results { max-height: 200px; overflow-y: auto; background: white; border: 1px solid #cbd5e1; border-radius: 4px; margin-top: 5px; display: none; }
-        .search-item { padding: 10px; border-bottom: 1px solid #e2e8f0; cursor: pointer; font-size: 0.9em; }
-        .search-item:hover { background: #f1f5f9; }
+        /* 북마크 영역 */
         .folder-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
         .folder-tag { background: #e0e7ff; color: #3730a3; padding: 8px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; border: 1px solid #c7d2fe; font-size: 0.9em; }
         .folder-tag:hover { background: #c7d2fe; }
@@ -60,10 +57,10 @@
         .feedback.info { background: #e2e8f0; border: 1px solid #cbd5e1; color: #334155; display: block; }
         .explanation-text { margin-top: 10px; line-height: 1.5; font-size: 0.95em; white-space: pre-wrap; }
 
-        /* 리뷰 모드 (해설 모드 / 결과창 스크롤) */
-        .review-list { max-height: 500px; overflow-y: auto; padding-right: 10px; }
-        .review-card { background: #f8fafc; border: 1px solid #cbd5e1; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
-        .review-card .q-title { font-weight: bold; font-size: 1.1em; margin-bottom: 10px; color: #003876; }
+        /* 리뷰 리스트 (해설 모드, 검색 화면, 결과창 공통) */
+        .review-list { max-height: 600px; overflow-y: auto; padding-right: 10px; }
+        .review-card { background: #f8fafc; border: 1px solid #cbd5e1; padding: 20px; border-radius: 6px; margin-bottom: 15px; }
+        .review-card .q-title { font-weight: bold; font-size: 1.1em; margin-bottom: 15px; color: #003876; line-height: 1.4;}
         .review-card .ans-comparison { margin: 10px 0; padding: 10px; background: white; border-radius: 4px; border-left: 4px solid #b91c1c; }
         
         #secret-btn { position: fixed; bottom: 15px; right: 15px; width: 30px; height: 30px; background: transparent; border: none; cursor: pointer; opacity: 0.05; z-index: 9999; }
@@ -113,12 +110,6 @@
                 <div style="text-align: right; font-size: 0.85em; margin-top: 5px; color: #64748b;"><span id="learning-rate-text">0</span>% (<span id="check-count">0</span> / <span id="total-db-count-lr">0</span>)</div>
             </div>
 
-            <div style="text-align: left; margin-bottom: 20px;">
-                <label style="font-weight: bold; font-size: 0.9em; display: block; margin-bottom: 5px;">문제 검색</label>
-                <input type="text" id="search-input" placeholder="키워드를 입력하세요..." onkeyup="app.searchQuestions()">
-                <div id="search-results" class="search-results"></div>
-            </div>
-
             <div style="text-align: left;">
                 <label style="font-weight: bold; font-size: 0.9em; display: block;">내 북마크 폴더</label>
                 <div id="bookmark-folders" class="folder-list">
@@ -128,12 +119,26 @@
         </div>
 
         <div>
+            <button class="btn btn-secondary" style="margin-bottom: 15px;" onclick="app.showSearchScreen()">🔍 문제 검색 열기</button>
+            <hr style="border:0; border-top: 1px solid #cbd5e1; margin-bottom: 15px;">
+            
             <label style="font-weight: bold; font-size: 0.9em;">응시 문항 수:</label>
             <input type="number" id="question-count" value="10" min="1" style="width: 80px; padding: 8px; margin-bottom: 15px; display: inline-block;">
             
             <button class="btn btn-primary" onclick="app.startQuiz('practice')">✏️ 연습 모드 (즉각 피드백)</button>
             <button class="btn btn-danger" onclick="app.startQuiz('exam')">📝 시험 모드 (실전 평가)</button>
             <button class="btn btn-outline" onclick="app.startReviewMode()">📖 해설 모드 (전체 훑어보기)</button>
+        </div>
+    </div>
+
+    <div id="search-screen" style="display: none;">
+        <div class="quiz-header">
+            <div class="progress">🔍 문항 검색 (현재 과목 전체)</div>
+            <button class="btn btn-secondary" style="width: auto; padding: 8px 15px;" onclick="app.goHome()">돌아가기</button>
+        </div>
+        <input type="text" id="full-search-input" placeholder="키워드를 입력하세요... (2글자 이상)" onkeyup="app.executeSearch()" style="margin-bottom: 20px;">
+        <div id="full-search-results" class="review-list">
+            <div style="color:#64748b; text-align:center; padding:30px;">검색어를 입력하면 전체 문제 정보가 나타납니다.</div>
         </div>
     </div>
 
@@ -195,16 +200,14 @@
 
         currentCategory: "내신",
         currentSubject: "",
-        allQuizData: [],       // 현재 선택된 과목의 전체 데이터
-        currentQuizPool: [],   // 실제 풀이할 문제 배열
+        allQuizData: [],       
+        currentQuizPool: [],   
         
-        // 상태 관리
-        learningProgress: {},  // { "과목명": { "문제텍스트": true(Check)/false(Non) } }
-        bookmarks: {},         // { "폴더명": [question_object, ...] }
-        examWrongAnswers: [],  // 시험 모드 종료 후 리뷰용: {q, userAns}
+        learningProgress: {},  
+        bookmarks: {},         
+        examWrongAnswers: [],  
         
-        // 진행 상태
-        currentMode: "",       // 'practice', 'exam'
+        currentMode: "",       
         currentIndex: 0,
         correctAnswers: 0,
         selectedOption: null,
@@ -245,7 +248,6 @@
             this.currentSubject = $("subject-select").value;
             $("display-subject-name").innerText = this.currentSubject;
             
-            // 데이터 초기화
             this.allQuizData = [];
             if (!this.learningProgress[this.currentSubject]) {
                 this.learningProgress[this.currentSubject] = {};
@@ -257,7 +259,6 @@
                     download: true,
                     header: true,
                     complete: (results) => {
-                        // 빈 문제 제외
                         this.allQuizData = results.data.filter(row => row['문제'] && row['문제'].trim());
                         this.updateDashboardUI();
                     }
@@ -272,7 +273,6 @@
             $("total-db-count").innerText = total;
             $("total-db-count-lr").innerText = total;
             
-            // 학습률 계산
             const subjectProgress = this.learningProgress[this.currentSubject] || {};
             let checkCount = 0;
             this.allQuizData.forEach(q => {
@@ -284,7 +284,6 @@
             $("learning-rate-text").innerText = rate;
             $("learning-rate-bar").style.width = rate + "%";
 
-            // 북마크 폴더 렌더링
             this.renderBookmarkFolders();
         },
 
@@ -305,13 +304,23 @@
             });
         },
 
-        // 문제 검색 로직
-        searchQuestions() {
-            const keyword = $("search-input").value.toLowerCase().trim();
-            const resContainer = $("search-results");
+        showScreen(id) {
+            ["start-screen", "quiz-area", "study-area", "result-screen", "search-screen"].forEach(s => $(s).style.display = (s===id?'block':'none'));
+        },
+
+        // --- 문항 검색 관련 로직 ---
+        showSearchScreen() {
+            this.showScreen("search-screen");
+            $("full-search-input").value = "";
+            $("full-search-results").innerHTML = "<div style='color:#64748b; text-align:center; padding:30px;'>검색어를 입력하면 전체 문제 정보가 나타납니다.</div>";
+        },
+
+        executeSearch() {
+            const keyword = $("full-search-input").value.toLowerCase().trim();
+            const resContainer = $("full-search-results");
             
             if (keyword.length < 2) {
-                resContainer.style.display = "none";
+                resContainer.innerHTML = "<div style='color:#64748b; text-align:center; padding:30px;'>검색어를 2글자 이상 입력하세요.</div>";
                 return;
             }
 
@@ -322,27 +331,41 @@
 
             resContainer.innerHTML = "";
             if (results.length === 0) {
-                resContainer.innerHTML = `<div class="search-item" style="color:#94a3b8;">결과가 없습니다.</div>`;
+                resContainer.innerHTML = `<div style="color:#b91c1c; text-align:center; padding:30px; font-weight:bold;">검색 결과가 없습니다.</div>`;
             } else {
-                results.slice(0, 15).forEach((q, idx) => {
+                results.forEach((q, idx) => {
                     const div = document.createElement("div");
-                    div.className = "search-item";
-                    div.innerHTML = `<strong>[${this.currentSubject}]</strong> ${q['문제']}`;
-                    // 클릭 시 해당 문제만 연습 모드로 단독 실행
-                    div.onclick = () => {
-                        this.currentQuizPool = [q];
-                        this.currentMode = "practice";
-                        $("search-input").value = "";
-                        resContainer.style.display = "none";
-                        this.launchQuiz();
-                    };
+                    div.className = "review-card";
+                    
+                    let imgHtml = (q['이미지'] && q['이미지'].trim()) ? `<img src="./images/${q['이미지'].trim()}" style="max-width:100%; display:block; margin-bottom:10px;" onerror="this.style.display='none'">` : '';
+                    
+                    // 선택지 생성 (정답은 녹색 배경)
+                    let optionsHtml = '<div style="margin: 15px 0; display:flex; flex-direction:column; gap:8px;">';
+                    ['A','B','C','D','E'].forEach(opt => {
+                        const val = q[`보기${opt}`];
+                        if (val && val.trim()) {
+                            const isCorrect = (q['정답'].trim().toUpperCase() === opt);
+                            const bgStyle = isCorrect ? 'background-color: #d4edda; border: 1px solid #1e7e34; color: #155724; font-weight:bold;' : 'background-color: #ffffff; border: 1px solid #cbd5e1; color: #334155;';
+                            optionsHtml += `<div style="padding: 10px 14px; border-radius: 6px; ${bgStyle}">${opt}) ${val} ${isCorrect ? ' ⭕ (정답)' : ''}</div>`;
+                        }
+                    });
+                    optionsHtml += '</div>';
+
+                    div.innerHTML = `
+                        <div class="q-title">Q. ${q['문제']}</div>
+                        ${imgHtml}
+                        ${optionsHtml}
+                        <div class="feedback info" style="display:block; margin-top:15px;">
+                            <strong>📖 해설:</strong><br>
+                            <span class="explanation-text">${q['해설'] || "해설이 등록되지 않았습니다."}</span>
+                        </div>
+                    `;
                     resContainer.appendChild(div);
                 });
             }
-            resContainer.style.display = "block";
         },
 
-        // 북마크 추가 로직
+        // --- 북마크 추가 로직 ---
         addBookmark() {
             const q = this.currentQuizPool[this.currentIndex];
             const folderName = prompt("저장할 북마크 폴더명을 입력하세요 (예: 자주 틀리는 문제, 공식 암기 등):", "기본 폴더");
@@ -350,23 +373,17 @@
 
             if (!this.bookmarks[folderName]) this.bookmarks[folderName] = [];
             
-            // 중복 검사
             const isExist = this.bookmarks[folderName].some(bq => bq['문제'] === q['문제']);
             if (!isExist) {
                 this.bookmarks[folderName].push(q);
                 this.saveBookmarks();
                 alert(`'${folderName}' 폴더에 저장되었습니다.`);
-                this.renderBookmarkFolders();
             } else {
                 alert("이미 해당 폴더에 존재하는 문제입니다.");
             }
         },
 
-        showScreen(id) {
-            ["start-screen", "quiz-area", "study-area", "result-screen"].forEach(s => $(s).style.display = (s===id?'block':'none'));
-        },
-
-        // 퀴즈 시작 분기
+        // --- 퀴즈 풀이 진입 로직 ---
         startQuiz(mode) {
             if (this.allQuizData.length === 0) return alert("문제가 로드되지 않았습니다.");
             
@@ -374,14 +391,13 @@
             let count = parseInt($("question-count").value) || 10;
             count = Math.min(count, this.allQuizData.length);
             
-            // 랜덤 셔플 후 추출
             this.currentQuizPool = [...this.allQuizData].sort(() => Math.random() - 0.5).slice(0, count);
             this.launchQuiz();
         },
 
         startQuizFromBookmark(folderName) {
             this.currentQuizPool = [...this.bookmarks[folderName]].sort(() => Math.random() - 0.5);
-            this.currentMode = "practice"; // 북마크는 연습모드가 기본
+            this.currentMode = "practice";
             this.launchQuiz();
         },
 
@@ -417,7 +433,7 @@
                     btn.innerText = `${opt}) ${val}`;
                     
                     btn.onclick = () => {
-                        if (this.selectedOption) return; // 이미 선택한 경우 막기 (연습모드 방어용)
+                        if (this.selectedOption) return; 
                         
                         document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
                         btn.classList.add('selected');
@@ -426,7 +442,6 @@
                         if (this.currentMode === 'practice') {
                             this.evaluatePractice(btn);
                         } else {
-                            // 시험 모드는 바로 다음 문제로 넘김 (또는 Next 버튼 표시)
                             this.evaluateExam(opt);
                         }
                     };
@@ -438,17 +453,14 @@
             $("next-btn").style.display = 'none';
         },
 
-        // 학습률 업데이트 공통 로직
         updateLearningRate(q, isCorrect) {
             if (!this.learningProgress[this.currentSubject]) {
                 this.learningProgress[this.currentSubject] = {};
             }
-            // 맞추면 true, 예전에 맞췄어도 이번에 틀리면 false (강등)
             this.learningProgress[this.currentSubject][q['문제']] = isCorrect;
             this.saveProgress();
         },
 
-        // 연습 모드: 클릭 즉시 피드백
         evaluatePractice(selectedBtn) {
             const q = this.currentQuizPool[this.currentIndex];
             const isCorrect = this.selectedOption === q['정답'].trim().toUpperCase();
@@ -456,11 +468,11 @@
             this.updateLearningRate(q, isCorrect);
 
             document.querySelectorAll('.option-btn').forEach(btn => {
-                btn.disabled = true; // 중복 클릭 방지
+                btn.disabled = true;
                 if (btn.innerText.startsWith(q['정답'])) {
-                    btn.classList.add('correct'); // 정답은 초록색 표시
+                    btn.classList.add('correct');
                 } else if (btn === selectedBtn && !isCorrect) {
-                    btn.classList.add('wrong'); // 오답은 빨간색 표시
+                    btn.classList.add('wrong');
                 }
             });
 
@@ -473,7 +485,6 @@
             $("next-btn").innerText = (this.currentIndex === this.currentQuizPool.length - 1) ? "종료하기" : "다음 문항";
         },
 
-        // 시험 모드: 클릭 시 기록 후 바로 다음 문항 (또는 잠시 딜레이)
         evaluateExam(selectedOpt) {
             const q = this.currentQuizPool[this.currentIndex];
             const isCorrect = selectedOpt === q['정답'].trim().toUpperCase();
@@ -486,7 +497,6 @@
                 this.examWrongAnswers.push({ question: q, userAns: selectedOpt });
             }
 
-            // 시험 모드는 바로 다음 문제로 넘김 (UI 흐름 방해 최소화 위해 0.3초 대기)
             setTimeout(() => {
                 this.nextQuestion();
             }, 300);
@@ -498,11 +508,10 @@
                 this.renderQuestion();
             } else {
                 if (this.currentMode === 'exam') this.finishExam();
-                else this.goHome(); // 연습모드 종료 시 홈으로
+                else this.goHome(); 
             }
         },
 
-        // 시험 모드 결과창 렌더링
         finishExam() {
             this.showScreen("result-screen");
             $("correct-count").innerText = this.correctAnswers;
@@ -511,12 +520,11 @@
             const ratio = this.correctAnswers / this.currentQuizPool.length;
             $("score-message").innerText = ratio === 1 ? "Perfect! 완벽합니다." : ratio >= 0.7 ? "합격권입니다. 오답을 확인하세요." : "복습이 필요합니다.";
             
-            // 오답 스크롤 리스트 렌더링
             const reviewCont = $("wrong-review-list");
             reviewCont.innerHTML = "";
             
             if (this.examWrongAnswers.length === 0) {
-                reviewCont.innerHTML = "<p style='color:#1e7e34; font-weight:bold;'>틀린 문제가 없습니다!</p>";
+                reviewCont.innerHTML = "<p style='color:#1e7e34; font-weight:bold; text-align:center; padding: 20px;'>틀린 문제가 없습니다!</p>";
                 return;
             }
 
@@ -532,9 +540,9 @@
                     ${imgHtml}
                     <div class="ans-comparison">
                         <span style="color:#b91c1c;">나의 답: ${wrongItem.userAns}) ${q[`보기${wrongItem.userAns}`]}</span><br>
-                        <span style="color:#1e7e34;">정답: ${q['정답']}) ${q[`보기${q['정답']}`]}</span>
+                        <span style="color:#1e7e34; font-weight:bold;">정답: ${q['정답']}) ${q[`보기${q['정답']}`]}</span>
                     </div>
-                    <div class="feedback info">
+                    <div class="feedback info" style="display:block;">
                         <strong>📖 해설:</strong><br>
                         <span class="explanation-text">${q['해설']}</span>
                     </div>
@@ -543,7 +551,6 @@
             });
         },
 
-        // 해설 모드 (전체 훑어보기)
         startReviewMode() {
             if (this.allQuizData.length === 0) return alert("문제가 로드되지 않았습니다.");
             
@@ -564,6 +571,7 @@
                         정답: ${q['정답']}) ${q[`보기${q['정답']}`]}
                     </div>
                     <div class="feedback info" style="display:block;">
+                        <strong>📖 해설:</strong><br>
                         <span class="explanation-text">${q['해설']}</span>
                     </div>
                 `;
