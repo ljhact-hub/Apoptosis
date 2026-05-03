@@ -7,7 +7,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         body { font-family: 'Malgun Gothic', 'Segoe UI', sans-serif; color: #1e293b; padding: 20px; background-image: url('./images/yonsei_bg.png'); background-size: cover; background-position: center; background-attachment: fixed; background-color: #00205B; transition: all 0.5s ease; }
-        .container { max-width: 900px; margin: 0 auto; background: rgba(255, 255, 255, 0.95); padding: 35px; border-radius: 8px; box-shadow: 0 8px 30px rgba(0, 56, 118, 0.2); border: 2px solid #003876; }
+        .container { max-width: 900px; margin: 0 auto; background: rgba(255, 255, 255, 0.95); padding: 35px; border-radius: 8px; box-shadow: 0 8px 30px rgba(0, 56, 118, 0.2); border: 2px solid #003876; position: relative; }
         h1, h2, h3 { text-align: center; color: #003876; font-weight: 800; margin-bottom: 25px; }
         .btn { display: inline-block; width: 100%; padding: 15px; margin-top: 10px; border: none; border-radius: 6px; font-size: 1.1em; font-weight: bold; cursor: pointer; color: #fff; transition: 0.2s; text-align: center; box-sizing: border-box; }
         .btn-primary { background: #003876; } .btn-primary:hover { background: #0050a0; }
@@ -44,12 +44,27 @@
         .feedback.wrong { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
         .feedback.info { background: #e2e8f0; border: 1px solid #cbd5e1; color: #334155; display: block; }
         .explanation-text { margin-top: 8px; line-height: 1.5; font-size: 0.9em; white-space: pre-wrap; }
-        .pagination { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 30px; flex-wrap: wrap; }
-        .page-btn { padding: 8px 12px; border: 1px solid #cbd5e1; background: white; cursor: pointer; border-radius: 4px; font-weight: bold; color: #334155; }
+        
+        /* 🚀 개선 2: 이미지 확대 커서 및 애니메이션 */
+        .zoomable-img { cursor: zoom-in; transition: transform 0.2s; border-radius: 4px; border: 1px solid #cbd5e1; }
+        .zoomable-img:hover { transform: scale(1.02); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+
+        /* 🚀 개선 3: 하단 고정 네비게이션 (Sticky Footer) */
+        #quiz-footer { 
+            position: sticky; bottom: -35px; background: rgba(255, 255, 255, 0.98); 
+            padding: 20px; border-top: 1px solid #cbd5e1; text-align: center; 
+            z-index: 100; margin: 20px -35px -35px -35px; 
+            border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; 
+            box-shadow: 0 -5px 15px rgba(0,32,91,0.08); 
+        }
+        
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 5px; flex-wrap: wrap; }
+        .page-btn { padding: 8px 12px; border: 1px solid #cbd5e1; background: white; cursor: pointer; border-radius: 4px; font-weight: bold; color: #334155; transition: 0.2s; }
         .page-btn:hover:not(:disabled) { background: #e2e8f0; }
         .page-btn.active { background: #003876; color: white; border-color: #003876; }
         .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         #secret-btn { position: fixed; bottom: 15px; right: 15px; width: 30px; height: 30px; background: transparent; border: none; cursor: pointer; opacity: 0.05; z-index: 9999; }
+        
         body.korea-theme { background-image: url('./images/korea_bg.png'); background-color: #820024; }
         body.korea-theme .container { border-color: #820024; }
         body.korea-theme h1, body.korea-theme h2, body.korea-theme h3, body.korea-theme .selector-box label { color: #820024; }
@@ -61,6 +76,12 @@
 </head>
 <body>
 <button id="secret-btn" onclick="app.toggleTheme()"></button>
+
+<!-- 🚀 개선 2: 원본 이미지 팝업 모달 -->
+<div id="image-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; cursor: zoom-out;" onclick="this.style.display='none'">
+    <img id="modal-img" style="max-width: 95%; max-height: 95%; border-radius: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.8);">
+</div>
+
 <div class="container">
     <div id="start-screen">
         <h1 id="main-title">Yonsei Clinical Science Portal</h1>
@@ -105,7 +126,8 @@
             <div class="progress">🔍 문항 검색 (현재 과목 전체)</div>
             <button class="btn btn-secondary btn-small" onclick="app.goHome()">돌아가기</button>
         </div>
-        <input type="text" id="full-search-input" placeholder="키워드를 입력하세요... (2글자 이상)" oninput="app.executeSearch()" style="margin-bottom: 20px;">
+        <!-- 🚀 개선 4: 디바운싱 적용된 검색창 -->
+        <input type="text" id="full-search-input" placeholder="키워드를 입력하세요... (2글자 이상)" oninput="app.debounceSearch()" style="margin-bottom: 20px;">
         <div id="full-search-results" class="quiz-grid">
             <div style="color:#64748b; text-align:center; padding:30px; grid-column: 1 / -1;">검색어를 입력하면 전체 문제 정보가 나타납니다.</div>
         </div>
@@ -115,10 +137,12 @@
             <div class="progress"><span id="mode-badge" style="background:#e2e8f0; padding:4px 8px; border-radius:4px; margin-right:10px; font-size:0.8em;">모드</span> 전체 <span id="total-quiz-num">0</span>문항 중 <span id="current-page-text">1</span>페이지</div>
             <button class="btn btn-secondary btn-small" onclick="app.goHome()">중단하기</button>
         </div>
-        <div id="quiz-grid" class="quiz-grid"></div>
-        <div id="quiz-footer" style="margin-top: 20px; border-top: 1px solid #cbd5e1; padding-top: 20px; text-align: center;">
+        <div id="quiz-grid" class="quiz-grid" style="padding-bottom: 10px;"></div>
+        
+        <!-- 하단 고정 네비게이션 -->
+        <div id="quiz-footer">
             <div id="pagination-controls" class="pagination"></div>
-            <button id="finish-exam-btn" class="btn btn-danger" style="display: none; width: 50%; margin: 20px auto 0;" onclick="app.finishExam()">시험 종료 및 최종 채점</button>
+            <button id="finish-exam-btn" class="btn btn-danger" style="display: none; width: 60%; margin: 15px auto 0;" onclick="app.finishExam()">시험 종료 및 최종 채점</button>
         </div>
     </div>
     <div id="study-area" style="display: none;">
@@ -142,14 +166,8 @@
 <script>
 const $ = (id) => document.getElementById(id);
 
-// 보기 컬럼 대소문자 모두 대응 (보기a/보기A 둘 다 인식)
-function getOptVal(q, opt) {
-    return (q['보기' + opt] || q['보기' + opt.toLowerCase()] || '').trim();
-}
-// 정답 대소문자 무관 반환
-function getCorrect(q) {
-    return (q['정답'] || '').trim().toUpperCase();
-}
+function getOptVal(q, opt) { return (q['보기' + opt] || q['보기' + opt.toLowerCase()] || '').trim(); }
+function getCorrect(q) { return (q['정답'] || '').trim().toUpperCase(); }
 
 const app = {
     SHEET_DATA: {
@@ -165,6 +183,7 @@ const app = {
     learningProgress: {}, bookmarks: {},
     currentMode: "", itemsPerPage: 2, currentPage: 0,
     userAnswers: {}, practiceSubmitted: {},
+    searchTimeout: null, // 검색 디바운싱용 타이머
 
     init() {
         this.loadTheme();
@@ -205,15 +224,12 @@ const app = {
         if (!url) { this.updateDashboardUI(); return; }
 
         Papa.parse(url, {
-            download: true,
-            header: true,
-            skipEmptyLines: true,
+            download: true, header: true, skipEmptyLines: true,
             transformHeader: h => h.trim(),
             complete: (results) => {
                 this.allQuizData = results.data.map(row => {
                     const n = {};
                     for (const k in row) {
-                        // 보기a~e → 보기A~E 통일
                         const nk = k.trim().replace(/^보기([a-e])$/i, (_, c) => '보기' + c.toUpperCase());
                         n[nk] = (row[k] || '').trim();
                     }
@@ -261,9 +277,12 @@ const app = {
         ["start-screen","quiz-area","study-area","result-screen","search-screen"].forEach(s => $(s).style.display = s === id ? 'block' : 'none');
     },
 
-    isBookmarked(q) {
-        return Object.values(this.bookmarks).some(arr => arr.some(bq => bq['문제'] === q['문제']));
+    showImageModal(src) {
+        $("modal-img").src = src;
+        $("image-modal").style.display = "flex";
     },
+
+    isBookmarked(q) { return Object.values(this.bookmarks).some(arr => arr.some(bq => bq['문제'] === q['문제'])); },
 
     removeBookmark(q) {
         for (const f in this.bookmarks) {
@@ -294,6 +313,11 @@ const app = {
         $("full-search-results").innerHTML = "<div style='color:#64748b;text-align:center;padding:30px;grid-column:1/-1;'>검색어를 입력하면 전체 문제 정보가 나타납니다.</div>";
     },
 
+    debounceSearch() {
+        clearTimeout(this.searchTimeout);
+        this.searchTimeout = setTimeout(() => this.executeSearch(), 300);
+    },
+
     executeSearch() {
         const kw = $("full-search-input").value.toLowerCase().trim();
         const rc = $("full-search-results");
@@ -310,7 +334,7 @@ const app = {
     createReviewCard(q, indexText = "") {
         const div = document.createElement("div");
         div.className = "review-card";
-        const imgHtml = (q['이미지'] && q['이미지'].trim()) ? '<img src="./images/' + q['이미지'].trim() + '" style="max-width:100%;display:block;margin-bottom:10px;" onerror="this.style.display=\'none\'">' : '';
+        const imgHtml = (q['이미지'] && q['이미지'].trim()) ? '<img src="./images/' + q['이미지'].trim() + '" class="zoomable-img" style="max-width:100%;display:block;margin-bottom:10px;" onerror="this.style.display=\'none\'" onclick="app.showImageModal(this.src)">' : '';
         let optsHtml = '<div class="options" style="margin-top:10px;">';
         ['A','B','C','D','E'].forEach(opt => {
             const val = getOptVal(q, opt);
@@ -359,6 +383,7 @@ const app = {
         for (let i = s; i < e; i++) grid.appendChild(this.createInteractiveQuizCard(i));
         $("current-page-text").innerText = this.currentPage + 1;
         this.renderPagination();
+        window.scrollTo(0, 0); // 새 페이지 렌더링 시 최상단으로 스크롤 이동
     },
 
     createInteractiveQuizCard(index) {
@@ -366,7 +391,7 @@ const app = {
         const card = document.createElement("div");
         card.className = "review-card";
         const star = this.isBookmarked(q) ? "⭐" : "☆";
-        const imgHtml = (q['이미지'] && q['이미지'].trim()) ? '<img src="./images/' + q['이미지'].trim() + '" style="max-width:100%;display:block;margin-bottom:10px;" onerror="this.style.display=\'none\'">' : '';
+        const imgHtml = (q['이미지'] && q['이미지'].trim()) ? '<img src="./images/' + q['이미지'].trim() + '" class="zoomable-img" style="max-width:100%;display:block;margin-bottom:10px;" onerror="this.style.display=\'none\'" onclick="app.showImageModal(this.src)">' : '';
         card.innerHTML = '<button class="card-bookmark-btn" style="position:absolute;top:15px;right:15px;background:none;border:none;font-size:1.5em;cursor:pointer;color:#fbbf24;">' + star + '</button>'
             + '<div class="q-title">' + (index + 1) + '. ' + q['문제'] + '</div>' + imgHtml;
         card.querySelector('.card-bookmark-btn').onclick = (e) => this.toggleBookmark(q, e.target);
@@ -397,7 +422,7 @@ const app = {
         if (this.currentMode === 'practice') {
             if (!this.practiceSubmitted[index]) {
                 const cb = document.createElement("button");
-                cb.className = "btn btn-primary btn-small";
+                cb.className = "btn btn-primary btn-small check-ans-btn";
                 cb.style.marginTop = "15px";
                 cb.innerText = "정답 확인하기";
                 cb.onclick = () => this.submitPracticeAnswer(index);
@@ -429,18 +454,20 @@ const app = {
         c.innerHTML = "";
         const prev = document.createElement("button");
         prev.className = "page-btn"; prev.innerText = "◀ 이전"; prev.disabled = this.currentPage === 0;
-        prev.onclick = () => { this.currentPage--; this.renderQuizPage(); window.scrollTo(0,0); };
+        prev.onclick = () => { this.currentPage--; this.renderQuizPage(); };
         c.appendChild(prev);
+        
         for (let i = 0; i < total; i++) {
             const pb = document.createElement("button");
             pb.className = "page-btn" + (i === this.currentPage ? ' active' : '');
             pb.innerText = i + 1;
-            pb.onclick = () => { this.currentPage = i; this.renderQuizPage(); window.scrollTo(0,0); };
+            pb.onclick = () => { this.currentPage = i; this.renderQuizPage(); };
             c.appendChild(pb);
         }
+        
         const next = document.createElement("button");
         next.className = "page-btn"; next.innerText = "다음 ▶"; next.disabled = this.currentPage === total - 1;
-        next.onclick = () => { this.currentPage++; this.renderQuizPage(); window.scrollTo(0,0); };
+        next.onclick = () => { this.currentPage++; this.renderQuizPage(); };
         c.appendChild(next);
         $("finish-exam-btn").style.display = (this.currentMode === 'exam' && this.currentPage === total - 1) ? "block" : "none";
     },
@@ -475,7 +502,7 @@ const app = {
             const q = wi.question;
             const div = document.createElement("div");
             div.className = "review-card";
-            const imgHtml = (q['이미지'] && q['이미지'].trim()) ? '<img src="./images/' + q['이미지'].trim() + '" style="max-width:100%;display:block;margin-bottom:10px;" onerror="this.style.display=\'none\'">' : '';
+            const imgHtml = (q['이미지'] && q['이미지'].trim()) ? '<img src="./images/' + q['이미지'].trim() + '" class="zoomable-img" style="max-width:100%;display:block;margin-bottom:10px;" onerror="this.style.display=\'none\'" onclick="app.showImageModal(this.src)">' : '';
             const star = this.isBookmarked(q) ? "⭐" : "☆";
             let optsHtml = '<div class="options" style="margin-top:10px;">';
             ['A','B','C','D','E'].forEach(opt => {
@@ -497,6 +524,7 @@ const app = {
             div.querySelector('.card-bookmark-btn').onclick = (e) => this.toggleBookmark(q, e.target);
             rc.appendChild(div);
         });
+        window.scrollTo(0, 0);
     },
 
     startReviewMode() {
@@ -508,7 +536,7 @@ const app = {
         this.showScreen("study-area");
     },
 
-    goHome() { this.updateDashboardUI(); this.showScreen("start-screen"); },
+    goHome() { this.updateDashboardUI(); this.showScreen("start-screen"); window.scrollTo(0, 0); },
 
     toggleTheme() {
         document.body.classList.toggle("korea-theme");
@@ -519,6 +547,46 @@ const app = {
 
     loadTheme() { if (localStorage.getItem("theme") === "korea") this.toggleTheme(); }
 };
+
+// 🚀 개선 1: 키보드 단축키 지원 (1~5: 보기 선택, Enter: 제출, 좌/우: 페이지 이동)
+document.addEventListener("keydown", (e) => {
+    // 입력창에서 타이핑 중일 때는 무시
+    if (e.target.tagName === 'INPUT' || $("image-modal").style.display === "flex") return;
+    
+    if ($("quiz-area").style.display === "block") {
+        if (e.key === "ArrowLeft") {
+            const prev = document.querySelector("#pagination-controls .page-btn:first-child");
+            if (prev && !prev.disabled) prev.click();
+        }
+        else if (e.key === "ArrowRight") {
+            const next = document.querySelector("#pagination-controls .page-btn:last-child");
+            if (next && !next.disabled) next.click();
+        }
+        else if (e.key === "Enter") {
+            if (app.currentMode === 'practice') {
+                const checks = document.querySelectorAll(".check-ans-btn");
+                if (checks.length > 0) checks[0].click();
+            } else if (app.currentMode === 'exam') {
+                const finish = $("finish-exam-btn");
+                if (finish && finish.style.display !== "none") finish.click();
+            }
+        }
+        else if (['1', '2', '3', '4', '5'].includes(e.key)) {
+            const opts = ['A', 'B', 'C', 'D', 'E'];
+            const optIdx = parseInt(e.key) - 1;
+            // 화면에 보이는 '첫 번째' 문제에 단축키 적용
+            const currentQIndex = app.currentPage * app.itemsPerPage;
+            if (currentQIndex < app.currentQuizPool.length) {
+                const q = app.currentQuizPool[currentQIndex];
+                const val = getOptVal(q, opts[optIdx]);
+                if (val && (!app.practiceSubmitted[currentQIndex] || app.currentMode !== 'practice')) {
+                    app.userAnswers[currentQIndex] = opts[optIdx];
+                    app.renderQuizPage();
+                }
+            }
+        }
+    }
+});
 
 document.addEventListener("DOMContentLoaded", () => app.init());
 </script>
