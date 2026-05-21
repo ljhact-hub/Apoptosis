@@ -1,3 +1,165 @@
+const app = {
+    SHEET_DATA: {
+        "ASCPi": {
+            "Hematology": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQuHj_HvmwKjNLQFgJVo2AauHR5bqoBppnhijqepJ3Q4hnjPVHt3R2TDXzUGRyG8k8igkEAr8UwVMFI/pub?output=csv",
+            "Immunology": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRobSYYDi5NPFlkFr2g6si4oFsuaB822Ufq3DlGU0xBCKTFAxs-o8UZvJPWz-N9W5of84hFicaEpR0r/pub?output=csv",
+            "Immunohematology": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSwgFtMq982lUFF602_gxZ99mzUSlLoSFiqHHmo4BMZCmF8Do9z25x_VfulSFLzxfYLEcG0wGkDWTTQ/pub?output=csv",
+            "Clinical Chemistry": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSSSEOW5QZtsgD4MG8H4sVhA4nG8NxZ7-BKxhYvdKQP_xmaD58Ecr_JKmEFl59a6-Pu9cn-w9KS106-/pub?output=csv",
+            "Urinalysis and body fluids": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQLnu1ToQISYbnc0mnH26KWygYD8Jiq-oedwXgYcoC4LXTo7JtMwd132PZaT2hh7T-TCA9yh13-aWOW/pub?output=csv",
+            "microbiology": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRywHxs6B-70nxhM_UmDBJsIxW8oEsdkY0HeilZQaCEJU0FXUBZcgjDGRkRD3iUvFBmkRVwtashiQev/pub?output=csv",
+            "molecular diagnosis": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRGlsxMbI0P0GTwsBAlFD-Lo7NN9sRTZz1adsAtKgtOQUOZUTL_IrqFkTsganU--U7rbVNMLkfbKzLZ/pub?output=csv",
+            "education and management": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRKaMQ4UBRtgIrmCIefOiHu6_6CkMqM-veGCWbFm-RtP3NMTUC2hRryPqw9QN0xwGFnYbTNjtZ3ZVei/pub?output=csv",
+            "photomicrograph and color plate examination": "https://docs.google.com/spreadsheets/d/e/2PACX-1vT7-7jZTBCDyltd_yrA_LEVUPGMaCzjeCZelirD0ywwdrKp5ciGnDu_UemH7sYJMyKr1_oghDmdl0Qw/pub?output=csv"
+        },
+        "Simulation": {
+            "Self-Assessment": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS_HRXA4uhh3GanmWZxHsS7EDcJ_5qOf4g4yunwlT7jSfoJYLOo3dLAsDAdEruyjj9fD-0cLI5CMdNR/pub?output=csv"
+        },
+        "내신": {
+            "임상화학": "https://docs.google.com/spreadsheets/d/e/2PACX-1vR9G8mJqpsn9xWmhg_2LCAWbfi2vsZTxRdq77NStrnzYHG3HCfgpatnlFh1Y6gP0IblU3EVJMPYr6_0/pub?output=csv"
+        }
+    },
+    currentCategory: "ASCPi", currentSubject: "",
+    allQuizData: [], currentQuizPool: [],
+    learningProgress: {}, bookmarks: {},
+    currentMode: "", itemsPerPage: 2, currentPage: 0,
+    studyPage: 0, itemsPerStudyPage: 10,
+    searchPage: 0, itemsPerSearchPage: 10, searchResults: [],
+    bookmarkPage: 0, itemsPerBookmarkPage: 10, currentBookmarkFolder: "",
+    userAnswers: {}, practiceSubmitted: {},
+    searchTimeout: null, // 검색 디바운싱용 타이머
+
+    init() {
+        this.updateItemsPerPage();
+        window.addEventListener('resize', () => {
+            const oldItemsPerPage = this.itemsPerPage;
+            this.updateItemsPerPage();
+            if (oldItemsPerPage !== this.itemsPerPage && $("quiz-area").style.display === "block") {
+                const firstQuestionIndex = this.currentPage * oldItemsPerPage;
+                this.currentPage = Math.floor(firstQuestionIndex / this.itemsPerPage);
+                this.renderQuizPage();
+            }
+        });
+
+        // 스크롤 시 플로팅 돌아가기 버튼 노출 제어
+        window.addEventListener('scroll', () => {
+            const btn = $("fixed-back-btn");
+            const shouldShow = window.scrollY > 300 && 
+                ($("study-area").style.display === "block" || 
+                 $("quiz-area").style.display === "block" || 
+                 $("search-screen").style.display === "block" || 
+                 $("bookmark-screen").style.display === "block");
+            btn.style.display = shouldShow ? "block" : "none";
+        });
+
+        this.loadTheme();
+        this.loadStorageData();
+        $("category-select").value = this.currentCategory;
+        this.showScreen("start-screen"); // OMR 숨기기 초기화
+        this.onCategoryChange();
+    },
+
+    updateItemsPerPage() {
+        this.itemsPerPage = window.innerWidth < 768 ? 1 : 2;
+    },
+
+    loadStorageData() {
+        const lp = localStorage.getItem("clinical_learning_progress");
+        this.learningProgress = lp ? JSON.parse(lp) : {};
+        const bm = localStorage.getItem("clinical_bookmarks");
+        this.bookmarks = bm ? JSON.parse(bm) : {};
+    },
+
+    saveProgress() { localStorage.setItem("clinical_learning_progress", JSON.stringify(this.learningProgress)); },
+    saveBookmarks() { localStorage.setItem("clinical_bookmarks", JSON.stringify(this.bookmarks)); },
+
+    onCategoryChange() {
+        this.currentCategory = $("category-select").value;
+        const subjects = Object.keys(this.SHEET_DATA[this.currentCategory]);
+        const sel = $("subject-select");
+        sel.innerHTML = "";
+        
+        if (subjects.length > 1) {
+            const optAll = document.createElement("option");
+            optAll.value = "ALL"; optAll.innerText = "전체 과목 (통합)";
+            sel.appendChild(optAll);
+        }
+
+        subjects.forEach(sub => {
+            const o = document.createElement("option");
+            o.value = sub; o.innerText = sub;
+            sel.appendChild(o);
+        });
+        this.onSubjectChange();
+    },
+
+    onSubjectChange() {
+        this.currentSubject = $("subject-select").value;
+        $("display-subject-name").innerText = this.currentSubject === "ALL" ? "전체 통합" : this.currentSubject;
+        this.allQuizData = [];
+        
+        if (this.currentSubject === "ALL") {
+            const subjects = Object.keys(this.SHEET_DATA[this.currentCategory]);
+            const promises = subjects.map(sub => this.fetchSubjectData(sub));
+            Promise.all(promises).then(results => {
+                this.allQuizData = results.flat();
+                this.updateDashboardUI();
+            });
+        } else {
+            this.fetchSubjectData(this.currentSubject).then(data => {
+                this.allQuizData = data;
+                this.updateDashboardUI();
+            });
+        }
+    },
+
+    fetchSubjectData(subject) {
+        return new Promise((resolve) => {
+            const url = this.SHEET_DATA[this.currentCategory][subject];
+            if (!url) return resolve([]);
+            
+            Papa.parse(url, {
+                download: true, header: true, skipEmptyLines: true,
+                transformHeader: h => h.trim(),
+                complete: (results) => {
+                    const data = results.data.map(row => {
+                        const n = {};
+                        for (const k in row) {
+                            const nk = k.trim().replace(/^보기([a-e])$/i, (_, c) => '보기' + c.toUpperCase());
+                            n[nk] = (row[k] || '').trim();
+                        }
+                        n['_subject'] = subject; 
+                        return n;
+                    }).filter(row => row['문제']);
+                    resolve(data);
+                },
+                error: (err) => {
+                    console.error(`${subject} 데이터 로드 실패:`, err);
+                    resolve([]);
+                }
+            });
+        });
+    },
+
+    updateDashboardUI() {
+        const total = this.allQuizData.length;
+        $("total-db-count").innerText = total;
+        $("total-db-count-lr").innerText = total;
+        
+        let checkCount = 0;
+        this.allQuizData.forEach(q => {
+            const sub = q['_subject'];
+            if (this.learningProgress[sub] && this.learningProgress[sub][q['문제']] === true) {
+                checkCount++;
+            }
+        });
+
+        $("check-count").innerText = checkCount;
+        const rate = total === 0 ? 0 : Math.round((checkCount / total) * 100);
+        $("learning-rate-text").innerText = rate;
+        $("learning-rate-bar").style.width = rate + "%";
+        this.renderBookmarkFolders();
+    },
+
     renderBookmarkFolders() {
         const c = $("bookmark-folders-list");
         if (!c) return;
@@ -10,7 +172,7 @@
             wrap.style.display = "flex"; wrap.style.alignItems = "center"; wrap.style.gap = "8px";
             
             const name = document.createElement("span");
-            name.innerText = "[Folder] " + folder + " (" + this.bookmarks[folder].length + ")";
+            name.innerText = folder + " (" + this.bookmarks[folder].length + ")";
             name.onclick = () => this.startQuizFromBookmark(folder);
             
             const viewBtn = document.createElement("button");
@@ -27,7 +189,7 @@
 
     showBookmarkScreen() {
         this.showScreen("bookmark-screen");
-        this.backToBookmarkFolders(); // 폴더 목록부터 표시
+        this.backToBookmarkFolders(); 
         this.renderBookmarkFolders();
     },
 
@@ -36,7 +198,7 @@
         this.bookmarkPage = 0;
         $("bookmark-folders-container").style.display = "none";
         $("bookmark-view-area").style.display = "block";
-        $("bookmark-folder-title").innerText = "[Folder] " + folder;
+        $("bookmark-folder-title").innerText = folder;
         this.renderBookmarkQuestionsPage();
     },
 
@@ -51,9 +213,7 @@
         const data = this.bookmarks[this.currentBookmarkFolder] || [];
         const s = this.bookmarkPage * this.itemsPerBookmarkPage;
         const e = Math.min(s + this.itemsPerBookmarkPage, data.length);
-        
         for (let i = s; i < e; i++) list.appendChild(this.createReviewCard(data[i], (i + 1) + ". "));
-        
         this.renderGenericPagination("bookmark-pagination-controls", data.length, this.itemsPerBookmarkPage, this.bookmarkPage, (p) => {
             this.bookmarkPage = p;
             this.renderBookmarkQuestionsPage();
@@ -64,7 +224,6 @@
     showScreen(id) {
         ["start-screen","quiz-area","study-area","result-screen","search-screen","bookmark-screen"].forEach(s => $(s).style.display = s === id ? 'block' : 'none');
         $("fixed-back-btn").style.display = "none"; 
-        // 📝 OMR 서랍 표시 여부 제어 (시험/시뮬레이션 모드에서만 노출 가능)
         if (id === "quiz-area" && this.currentMode === "exam") {
             $("omr-drawer").style.display = "flex";
             this.renderOMR();
@@ -142,7 +301,6 @@
         if (this.isBookmarked(q)) {
             if (confirm("이 문제를 북마크에서 삭제하시겠습니까?")) {
                 this.removeBookmark(q); btn.innerText = "Add Bookmark"; this.renderBookmarkFolders();
-                // 북마크 보기 화면에서 삭제 시 갱신
                 if ($("bookmark-view-area").style.display === "block") this.renderBookmarkQuestionsPage();
             }
         } else {
@@ -326,7 +484,6 @@
             info.innerText = `${this.currentPage + 1} / ${total}`;
             c.appendChild(info);
         } else {
-            // 숫자 나열 방식: 현재 페이지 앞뒤 5개씩 표시
             for (let i = 0; i < total; i++) {
                 if (i === 0 || i === total - 1 || (i >= this.currentPage - 5 && i <= this.currentPage + 5)) {
                     const pb = document.createElement("button");
@@ -480,7 +637,6 @@
         prev.onclick = () => onPageChange(currentPage - 1);
         c.appendChild(prev);
         for (let i = 0; i < total; i++) {
-            // 현재 페이지 기준 앞뒤 5개씩 표시
             if (i === 0 || i === total - 1 || (i >= currentPage - 5 && i <= currentPage + 5)) {
                 const pb = document.createElement("button");
                 pb.className = "page-btn" + (i === currentPage ? ' active' : '');
