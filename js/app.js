@@ -26,7 +26,7 @@ const app = {
     searchPage: 0, itemsPerSearchPage: 10, searchResults: [],
     bookmarkPage: 0, itemsPerBookmarkPage: 10, currentBookmarkFolder: "",
     userAnswers: {}, practiceSubmitted: {},
-    searchTimeout: null, // 검색 디바운싱용 타이머
+    searchTimeout: null,
 
     init() {
         this.updateItemsPerPage();
@@ -40,7 +40,6 @@ const app = {
             }
         });
 
-        // 스크롤 시 플로팅 돌아가기 버튼 노출 제어
         window.addEventListener('scroll', () => {
             const btn = $("fixed-back-btn");
             const shouldShow = window.scrollY > 300 && 
@@ -54,7 +53,7 @@ const app = {
         this.loadTheme();
         this.loadStorageData();
         $("category-select").value = this.currentCategory;
-        this.showScreen("start-screen"); // OMR 숨기기 초기화
+        this.showScreen("start-screen");
         this.onCategoryChange();
     },
 
@@ -116,7 +115,6 @@ const app = {
         return new Promise((resolve) => {
             const url = this.SHEET_DATA[this.currentCategory][subject];
             if (!url) return resolve([]);
-            
             Papa.parse(url, {
                 download: true, header: true, skipEmptyLines: true,
                 transformHeader: h => h.trim(),
@@ -144,7 +142,6 @@ const app = {
         const total = this.allQuizData.length;
         $("total-db-count").innerText = total;
         $("total-db-count-lr").innerText = total;
-        
         let checkCount = 0;
         this.allQuizData.forEach(q => {
             const sub = q['_subject'];
@@ -152,7 +149,6 @@ const app = {
                 checkCount++;
             }
         });
-
         $("check-count").innerText = checkCount;
         const rate = total === 0 ? 0 : Math.round((checkCount / total) * 100);
         $("learning-rate-text").innerText = rate;
@@ -170,17 +166,14 @@ const app = {
             const wrap = document.createElement("div");
             wrap.className = "folder-tag";
             wrap.style.display = "flex"; wrap.style.alignItems = "center"; wrap.style.gap = "8px";
-            
             const name = document.createElement("span");
             name.innerText = folder + " (" + this.bookmarks[folder].length + ")";
             name.onclick = () => this.startQuizFromBookmark(folder);
-            
             const viewBtn = document.createElement("button");
             viewBtn.innerText = "보기";
             viewBtn.style.padding = "2px 8px"; viewBtn.style.fontSize = "0.8em";
             viewBtn.className = "btn btn-outline";
             viewBtn.onclick = (e) => { e.stopPropagation(); this.viewBookmarkQuestions(folder); };
-            
             wrap.appendChild(name);
             wrap.appendChild(viewBtn);
             c.appendChild(wrap);
@@ -222,7 +215,10 @@ const app = {
     },
 
     showScreen(id) {
-        ["start-screen","quiz-area","study-area","result-screen","search-screen","bookmark-screen"].forEach(s => $(s).style.display = s === id ? 'block' : 'none');
+        ["start-screen","quiz-area","study-area","result-screen","search-screen","bookmark-screen"].forEach(s => {
+            const el = $(s);
+            if (el) el.style.display = s === id ? 'block' : 'none';
+        });
         $("fixed-back-btn").style.display = "none"; 
         if (id === "quiz-area" && this.currentMode === "exam") {
             $("omr-drawer").style.display = "flex";
@@ -300,7 +296,7 @@ const app = {
     toggleBookmark(q, btn) {
         if (this.isBookmarked(q)) {
             if (confirm("이 문제를 북마크에서 삭제하시겠습니까?")) {
-                this.removeBookmark(q); btn.innerText = "Add Bookmark"; this.renderBookmarkFolders();
+                this.removeBookmark(q); btn.innerText = "BM"; this.renderBookmarkFolders();
                 if ($("bookmark-view-area").style.display === "block") this.renderBookmarkQuestionsPage();
             }
         } else {
@@ -308,7 +304,7 @@ const app = {
             if (!f) return;
             if (!this.bookmarks[f]) this.bookmarks[f] = [];
             this.bookmarks[f].push(q); this.saveBookmarks();
-            btn.innerText = "Bookmarked"; this.renderBookmarkFolders();
+            btn.innerText = "Saved"; this.renderBookmarkFolders();
             alert("'" + f + "' 폴더에 저장되었습니다.");
         }
     },
@@ -365,10 +361,10 @@ const app = {
             optsHtml += '<div style="padding:10px 14px;border-radius:6px;margin-bottom:8px;' + bg + '">' + opt + ') ' + val + (isCor ? ' (정답)' : '') + '</div>';
         });
         optsHtml += '</div>';
-        const starText = this.isBookmarked(q) ? "Bookmarked" : "Add Bookmark";
+        const starText = this.isBookmarked(q) ? "Saved" : "BM";
         const subjectBadge = q['_subject'] ? `<span style="font-size: 0.75em; background: #e2e8f0; color: #475569; padding: 3px 8px; border-radius: 4px; margin-right: 8px; vertical-align: middle; display: inline-block; line-height: 1;">${q['_subject']}</span>` : '';
-        div.innerHTML = '<button class="card-bookmark-btn" style="position:absolute;top:15px;right:15px;background:none;border:1px solid #cbd5e1;font-size:0.8em;padding:4px 8px;border-radius:4px;cursor:pointer;color:#64748b;">' + starText + '</button>'
-            + '<div class="q-title" style="padding-right:110px;">' + subjectBadge + indexText + 'Q. ' + q['문제'] + '</div>'
+        div.innerHTML = '<button class="card-bookmark-btn" style="position:absolute;top:10px;right:10px;background:none;border:1px solid #cbd5e1;font-size:0.65em;padding:2px 5px;border-radius:4px;cursor:pointer;color:#64748b;font-weight:bold;">' + starText + '</button>'
+            + '<div class="q-title" style="padding-right:50px; min-height:0; margin-bottom:10px;">' + subjectBadge + indexText + 'Q. ' + q['문제'] + '</div>'
             + imgHtml + optsHtml
             + '<div class="feedback info" style="display:block;margin-top:auto;"><strong>해설:</strong><br><span class="explanation-text">' + (q['해설'] || '해설이 등록되지 않았습니다.') + '</span></div>';
         div.querySelector('.card-bookmark-btn').onclick = (e) => this.toggleBookmark(q, e.target);
@@ -412,10 +408,10 @@ const app = {
         const q = this.currentQuizPool[index];
         const card = document.createElement("div");
         card.className = "review-card";
-        const starText = this.isBookmarked(q) ? "Bookmarked" : "Add Bookmark";
+        const starText = this.isBookmarked(q) ? "Saved" : "BM";
         const imgHtml = (q['이미지'] && q['이미지'].trim()) ? '<img src="./images/' + q['이미지'].trim() + '" class="zoomable-img" style="max-width:100%;display:block;margin-bottom:10px;" onerror="this.style.display=\'none\'" onclick="app.showImageModal(this.src)">' : '';
-        card.innerHTML = '<button class="card-bookmark-btn" style="position:absolute;top:15px;right:15px;background:none;border:1px solid #cbd5e1;font-size:0.8em;padding:4px 8px;border-radius:4px;cursor:pointer;color:#64748b;">' + starText + '</button>'
-            + '<div class="q-title" style="padding-right:110px;">' + (index + 1) + '. ' + q['문제'] + '</div>' + imgHtml;
+        card.innerHTML = '<button class="card-bookmark-btn" style="position:absolute;top:10px;right:10px;background:none;border:1px solid #cbd5e1;font-size:0.65em;padding:2px 5px;border-radius:4px;cursor:pointer;color:#64748b;font-weight:bold;">' + starText + '</button>'
+            + '<div class="q-title" style="padding-right:50px; min-height:0; margin-bottom:10px;">' + (index + 1) + '. ' + q['문제'] + '</div>' + imgHtml;
         card.querySelector('.card-bookmark-btn').onclick = (e) => this.toggleBookmark(q, e.target);
         const optsDiv = document.createElement("div");
         optsDiv.className = "options";
@@ -478,27 +474,13 @@ const app = {
         prev.className = "page-btn"; prev.innerText = "< 이전"; prev.disabled = this.currentPage === 0;
         prev.onclick = () => { this.currentPage--; this.renderQuizPage(); };
         c.appendChild(prev);
-        if (this.currentMode === 'exam') {
-            const info = document.createElement("span");
-            info.style.margin = "0 15px"; info.style.fontWeight = "bold"; info.style.color = "#64748b";
-            info.innerText = `${this.currentPage + 1} / ${total}`;
-            c.appendChild(info);
-        } else {
-            for (let i = 0; i < total; i++) {
-                if (i === 0 || i === total - 1 || (i >= this.currentPage - 5 && i <= this.currentPage + 5)) {
-                    const pb = document.createElement("button");
-                    pb.className = "page-btn" + (i === this.currentPage ? ' active' : '');
-                    pb.innerText = i + 1;
-                    pb.onclick = () => { this.currentPage = i; this.renderQuizPage(); };
-                    c.appendChild(pb);
-                } else if (i === 1 || i === total - 2) {
-                    if (c.lastChild && c.lastChild.tagName === 'SPAN') continue;
-                    const span = document.createElement("span");
-                    span.innerText = "..."; span.style.padding = "0 5px";
-                    c.appendChild(span);
-                }
-            }
-        }
+
+        // 📝 연습/시험/시뮬레이션 모든 퀴즈 모드에서 간소화된 페이지 표시 적용
+        const info = document.createElement("span");
+        info.style.margin = "0 15px"; info.style.fontWeight = "bold"; info.style.color = "#64748b";
+        info.innerText = `${this.currentPage + 1} / ${total}`;
+        c.appendChild(info);
+        
         const next = document.createElement("button");
         next.className = "page-btn"; next.innerText = "다음 >"; next.disabled = this.currentPage === total - 1;
         next.onclick = () => { this.currentPage++; this.renderQuizPage(); };
@@ -537,7 +519,7 @@ const app = {
             const div = document.createElement("div");
             div.className = "review-card";
             const imgHtml = (q['이미지'] && q['이미지'].trim()) ? '<img src="./images/' + q['이미지'].trim() + '" class="zoomable-img" style="max-width:100%;display:block;margin-bottom:10px;" onerror="this.style.display=\'none\'" onclick="app.showImageModal(this.src)">' : '';
-            const starText = this.isBookmarked(q) ? "Bookmarked" : "Add Bookmark";
+            const starText = this.isBookmarked(q) ? "Saved" : "BM";
             let optsHtml = '<div class="options" style="margin-top:10px;">';
             ['A','B','C','D','E'].forEach(opt => {
                 const val = getOptVal(q, opt);
@@ -552,8 +534,8 @@ const app = {
             });
             optsHtml += '</div>';
             const subjectBadge = q['_subject'] ? `<span style="font-size: 0.75em; background: #e2e8f0; color: #475569; padding: 3px 8px; border-radius: 4px; margin-right: 8px; vertical-align: middle; display: inline-block; line-height: 1;">${q['_subject']}</span>` : '';
-            div.innerHTML = '<button class="card-bookmark-btn" style="position:absolute;top:15px;right:15px;background:none;border:1px solid #cbd5e1;font-size:0.8em;padding:4px 8px;border-radius:4px;cursor:pointer;color:#64748b;">' + starText + '</button>'
-                + '<div class="q-title" style="padding-right:110px;">' + subjectBadge + wi.index + '. ' + q['문제'] + '</div>'
+            div.innerHTML = '<button class="card-bookmark-btn" style="position:absolute;top:10px;right:10px;background:none;border:1px solid #cbd5e1;font-size:0.65em;padding:2px 5px;border-radius:4px;cursor:pointer;color:#64748b;font-weight:bold;">' + starText + '</button>'
+                + '<div class="q-title" style="padding-right:50px; min-height:0; margin-bottom:10px;">' + subjectBadge + wi.index + '. ' + q['문제'] + '</div>'
                 + imgHtml + optsHtml
                 + '<div class="feedback info" style="display:block;margin-top:auto;"><strong>해설:</strong><br><span class="explanation-text">' + (q['해설'] || '해설이 등록되지 않았습니다.') + '</span></div>';
             div.querySelector('.card-bookmark-btn').onclick = (e) => this.toggleBookmark(q, e.target);

@@ -12,20 +12,24 @@ body {
     max-width: 900px; 
     margin: 0 auto; 
     background: #ffffff; 
-    padding: 35px; 
+    padding: 25px; 
     border-radius: 12px; 
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); 
     border: 1px solid #e2e8f0; 
     position: relative; 
 }
-h1, h2, h3 { text-align: center; color: #334155; font-weight: 800; margin-bottom: 25px; }
+@media (max-width: 480px) {
+    .container { padding: 15px; }
+    body { padding: 10px; }
+}
+h1, h2, h3 { text-align: center; color: #334155; font-weight: 800; margin-bottom: 25px; word-break: keep-all; }
 
 /* 버튼 공통 */
 .btn { 
-    display: inline-block; width: 100%; padding: 15px; margin-top: 10px; 
-    border: none; border-radius: 8px; font-size: 1.1em; font-weight: bold; 
+    display: inline-block; width: 100%; padding: 12px; margin-top: 10px; 
+    border: none; border-radius: 8px; font-size: 1em; font-weight: bold; 
     cursor: pointer; color: #fff; transition: 0.2s; text-align: center; 
-    box-sizing: border-box; 
+    box-sizing: border-box; word-break: keep-all;
 }
 .btn-primary { background: #475569; } .btn-primary:hover { background: #334155; }
 .btn-secondary { background: #94a3b8; } .btn-secondary:hover { background: #64748b; }
@@ -33,10 +37,11 @@ h1, h2, h3 { text-align: center; color: #334155; font-weight: 800; margin-bottom
 .btn-success { background: #34d399; color: #064e3b; }
 .btn-outline { background: transparent; border: 2px solid #cbd5e1; color: #64748b; }
 .btn-outline:hover { background: #f8fafc; border-color: #94a3b8; }
-.btn-small { padding: 10px; font-size: 1em; width: auto; }
+.btn-small { padding: 4px 8px; font-size: 0.85em; width: auto; }
 
 /* 입력창 및 선택창 */
 .selector-group { display: flex; gap: 10px; margin-bottom: 20px; }
+@media (max-width: 600px) { .selector-group { flex-direction: column; } }
 .selector-box { flex: 1; }
 .selector-box label { font-weight: bold; display: block; margin-bottom: 5px; color: #64748b; font-size: 0.9em; }
 select, input[type="text"], input[type="number"] { 
@@ -45,21 +50,35 @@ select, input[type="text"], input[type="number"] {
 }
 select:focus, input:focus { border-color: #94a3b8; outline: none; }
 
-.settings-box { background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0; transition: all 0.5s; }
+.settings-box { background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0; transition: all 0.5s; overflow: hidden; }
 .lr-bar-container { background: #f1f5f9; border-radius: 10px; height: 16px; overflow: hidden; margin-top: 10px; }
 .lr-bar { background: #64748b; height: 100%; width: 0%; transition: width 0.5s ease; }
 
-.folder-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
-.folder-tag { background: #f1f5f9; color: #475569; padding: 8px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; border: 1px solid #e2e8f0; font-size: 0.9em; }
+.folder-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.folder-tag { 
+    background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 4px; 
+    font-weight: bold; cursor: pointer; border: 1px solid #e2e8f0; font-size: 0.8em; 
+    max-width: 100%; box-sizing: border-box; display: inline-flex; align-items: center;
+}
 .folder-tag:hover { background: #e2e8f0; }
 
-.quiz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.progress { color: #64748b; font-weight: bold; }
-.quiz-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+.quiz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 10px; }
+.progress { color: #64748b; font-weight: bold; font-size: 0.9em; }
+.quiz-grid { display: grid; grid-template-columns: 1fr; gap: 20px; width: 100%; box-sizing: border-box; }
 @media (min-width: 768px) { .quiz-grid { grid-template-columns: 1fr 1fr; } }
 
-.review-card { position: relative; background: #ffffff; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; display: flex; flex-direction: column; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.review-card .q-title { font-weight: bold; font-size: 1.1em; margin-bottom: 15px; color: #1e293b; line-height: 1.4; padding-right: 35px; }
+.review-card { 
+    position: relative; background: #ffffff; border: 1px solid #e2e8f0; 
+    padding: 20px; border-radius: 8px; display: flex; flex-direction: column; 
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1); width: 100%; box-sizing: border-box;
+    overflow: hidden; word-break: break-word; 
+}
+@media (max-width: 480px) { .review-card { padding: 15px; } }
+.review-card .q-title { 
+    font-weight: bold; font-size: 1.1em; margin-bottom: 15px; color: #1e293b; 
+    line-height: 1.4; padding-right: 85px; min-height: 1.4em;
+}
+@media (max-width: 480px) { .review-card .q-title { padding-right: 0; margin-top: 30px; font-size: 1em; } }
 
 .options { display: flex; flex-direction: column; gap: 8px; margin-bottom: auto; }
 .option-btn { padding: 12px 14px; border: 1.5px solid #f1f5f9; border-radius: 8px; background: white; cursor: pointer; text-align: left; transition: 0.2s; font-size: 0.95em; color: #475569; }
@@ -91,7 +110,20 @@ select:focus, input:focus { border-color: #94a3b8; outline: none; }
 .page-btn.active { background: #475569; color: white; border-color: #475569; }
 .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* 📝 OMR 답안지 서랍 스타일 */
+#fixed-back-btn { 
+    border: 1px solid rgba(255,255,255,0.3) !important;
+}
+
+@media (max-width: 480px) {
+    #fixed-back-btn {
+        top: 10px !important;
+        right: 10px !important;
+        padding: 6px 12px !important;
+        font-size: 0.85em !important;
+    }
+}
+
+/* OMR 답안지 서랍 스타일 */
 .omr-drawer {
     position: fixed; top: 0; left: -280px; width: 280px; height: 100%;
     background: #ffffff; border-right: 2px solid #e2e8f0;
@@ -133,7 +165,7 @@ body.korea-theme .omr-num:hover { color: #820024; }
 
 #secret-btn { position: fixed; bottom: 15px; right: 15px; width: 30px; height: 30px; background: transparent; border: none; cursor: pointer; opacity: 0.05; z-index: 9999; }
 
-/* 🏛️ 연세 테마 (Easter Egg) */
+/* 연세 테마 (Easter Egg) */
 body.yonsei-theme { background-image: url('../images/yonsei_bg.png'); background-color: #00205B; background-size: cover; color: #00205B; }
 body.yonsei-theme .container { border-color: #003876; box-shadow: 0 8px 30px rgba(0, 56, 118, 0.2); }
 body.yonsei-theme h1, body.yonsei-theme h2, body.yonsei-theme h3, body.yonsei-theme .selector-box label { color: #003876; }
@@ -145,7 +177,7 @@ body.yonsei-theme .lr-bar { background: #003876; }
 body.yonsei-theme .page-btn.active { background: #003876; border-color: #003876; }
 body.yonsei-theme .option-btn.selected { background: #003876; border-color: #003876; }
 
-/* 🏛️ 고려 테마 (Easter Egg) */
+/* 고려 테마 (Easter Egg) */
 body.korea-theme { background-image: url('../images/korea_bg.png'); background-color: #820024; background-size: cover; color: #4a0011; }
 body.korea-theme .container { border-color: #820024; box-shadow: 0 8px 30px rgba(130, 0, 36, 0.2); }
 body.korea-theme h1, body.korea-theme h2, body.korea-theme h3, body.korea-theme .selector-box label { color: #820024; }
