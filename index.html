@@ -37,7 +37,15 @@
             <div class="start-sidebar">
                 <div class="settings-box">
                     <h3>학습 현황</h3>
-                    <div id="current-subject-stat" style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #bae6fd;">
+                    <!-- 상시 노출: 카테고리 전체 통합 통계 -->
+                    <div id="global-stat-container" style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #bae6fd;">
+                        <label style="font-weight: bold; font-size: 0.95em; color: #0369a1;">전체 통합 숙지율</label>
+                        <div class="lr-bar-container"><div id="global-learning-rate-bar" class="lr-bar"></div></div>
+                        <div style="text-align: right; font-size: 0.85em; margin-top: 5px; color: #64748b;"><span id="global-learning-rate-text">0</span>% (<span id="global-check-count">0</span> / <span id="global-total-count">0</span>)</div>
+                    </div>
+
+                    <!-- 조건부 노출 1: 개별 과목 선택 시 상세 숙지율 -->
+                    <div id="current-subject-stat" style="display: none; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #bae6fd;">
                         <p style="margin-bottom: 10px;"><strong id="display-subject-name">과목</strong> 보유 문항: <strong id="total-db-count">0</strong>개</p>
                         <div style="margin-bottom: 0;">
                             <label style="font-weight: bold; font-size: 0.9em;">현재 과목 숙지율</label>
@@ -46,18 +54,17 @@
                         </div>
                     </div>
 
-                    <!-- PC 전용: 과목별 상세 리스트 -->
-                    <div class="pc-only">
+                    <!-- 조건부 노출 2: PC 전용 과목별 리스트 (전체 통합 모드일 때만 노출) -->
+                    <div id="pc-subject-list-container" class="pc-only">
                         <h4 style="font-size: 1em; color: #0369a1; margin-bottom: 15px;">과목별 상세 현황</h4>
                         <div id="subject-stats-list-pc" class="scrollable-stats"></div>
                     </div>
 
-                    <!-- 모바일 전용: 상세 현황 보기 버튼 -->
-                    <div class="mobile-only" style="margin-top: 15px;">
+                    <!-- 모바일 전용: 상세 현황 보기 버튼 (전체 통합 모드일 때만 노출) -->
+                    <div id="mobile-progress-btn-container" class="mobile-only" style="margin-top: 15px;">
                         <button class="btn btn-outline" style="margin-top: 0; padding: 10px;" onclick="app.showProgressScreen()">전체 과목별 현황 보기</button>
                     </div>
-                </div>
-            </div>
+                </div>            </div>
 
             <!-- 메인: 주요 액션 -->
             <div class="start-main">
@@ -78,6 +85,7 @@
                     <div class="main-buttons">
                         <button class="btn btn-secondary" onclick="app.showSearchScreen()">문항 검색</button>
                         <button class="btn btn-secondary" onclick="app.showBookmarkScreen()">북마크 보관함</button>
+                        <button class="btn btn-secondary" onclick="app.showWrongNoteScreen()">오답 보관함</button>
                     </div>
                 </div>
                 
@@ -152,6 +160,19 @@
         <div class="settings-box" style="text-align: left; padding: 25px;">
             <p style="margin-bottom: 20px; color: #64748b; font-size: 0.95em;">각 과목별 문제 보유 수와 정답률을 확인할 수 있습니다.</p>
             <div id="subject-stats-list-mobile" class="quiz-grid"></div>
+        </div>
+    </div>
+    <div id="wrong-note-screen" style="display: none;">
+        <div class="quiz-header">
+            <div class="progress">오답 보관함 - <span id="wrong-note-title">전체</span> (<span id="wrong-note-count">0</span>문항) - <span id="wrong-note-current-page">1</span>페이지</div>
+            <button class="btn btn-secondary btn-small" onclick="app.goHome()">돌아가기</button>
+        </div>
+        <div style="margin-bottom: 20px;">
+            <button class="btn btn-primary" style="margin-top: 0;" onclick="app.startPracticeFromWrongNotes()">오답 풀이</button>
+        </div>
+        <div id="wrong-note-list" class="quiz-grid"></div>
+        <div id="wrong-note-footer" style="margin-top: 30px; padding-bottom: 20px;">
+            <div id="wrong-note-pagination-controls" class="pagination"></div>
         </div>
     </div>
     <div id="quiz-area" style="display: none;">

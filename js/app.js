@@ -18,7 +18,7 @@ const app = {
             "임상화학": "https://docs.google.com/spreadsheets/d/e/2PACX-1vR9G8mJqpsn9xWmhg_2LCAWbfi2vsZTxRdq77NStrnzYHG3HCfgpatnlFh1Y6gP0IblU3EVJMPYr6_0/pub?output=csv"
         }
     },
-    currentCategory: "ASCPi", currentSubject: "",
+    currentCategory: "ASCPi", currentSubject: "ALL",
     allQuizData: [], currentQuizPool: [],
     learningProgress: {}, bookmarks: {},
     currentMode: "", itemsPerPage: 2, currentPage: 0,
@@ -26,6 +26,7 @@ const app = {
     searchPage: 0, itemsPerSearchPage: 10, searchResults: [],
     bookmarkPage: 0, itemsPerBookmarkPage: 10, currentBookmarkFolder: "",
     resultPage: 0, itemsPerResultPage: 10, wrongList: [],
+    wrongNotePage: 0, itemsPerWrongNotePage: 10, filteredWrongList: [], currentWrongFilter: "전체",
     userAnswers: {}, practiceSubmitted: {},
     searchTimeout: null,
 
@@ -47,7 +48,9 @@ const app = {
                 ($("study-area").style.display === "block" || 
                  $("quiz-area").style.display === "block" || 
                  $("search-screen").style.display === "block" || 
-                 $("bookmark-screen").style.display === "block");
+                 $("bookmark-screen").style.display === "block" ||
+                 $("wrong-note-screen").style.display === "block" ||
+                 $("progress-screen").style.display === "block");
             btn.style.display = shouldShow ? "block" : "none";
         });
 
@@ -81,38 +84,38 @@ const app = {
         const sel = $("subject-select");
         sel.innerHTML = "";
         
-        if (subjects.length > 1) {
-            const optAll = document.createElement("option");
-            optAll.value = "ALL"; optAll.innerText = "전체 과목 (통합)";
-            sel.appendChild(optAll);
-        }
+        const optAll = document.createElement("option");
+        optAll.value = "ALL"; optAll.innerText = "전체 과목 (통합)";
+        sel.appendChild(optAll);
 
         subjects.forEach(sub => {
             const o = document.createElement("option");
             o.value = sub; o.innerText = sub;
             sel.appendChild(o);
         });
-        this.onSubjectChange();
+
+        this.fetchAllCategoryData().then(() => {
+            this.currentSubject = "ALL";
+            sel.value = "ALL";
+            this.updateDashboardUI();
+        }).catch(err => {
+            console.error("데이터 로딩 실패:", err);
+            this.updateDashboardUI();
+        });
+    },
+
+    fetchAllCategoryData() {
+        const subjects = Object.keys(this.SHEET_DATA[this.currentCategory]);
+        const promises = subjects.map(sub => this.fetchSubjectData(sub));
+        return Promise.all(promises).then(results => {
+            this.allQuizData = results.flat();
+        });
     },
 
     onSubjectChange() {
         this.currentSubject = $("subject-select").value;
         $("display-subject-name").innerText = this.currentSubject === "ALL" ? "전체 통합" : this.currentSubject;
-        this.allQuizData = [];
-        
-        if (this.currentSubject === "ALL") {
-            const subjects = Object.keys(this.SHEET_DATA[this.currentCategory]);
-            const promises = subjects.map(sub => this.fetchSubjectData(sub));
-            Promise.all(promises).then(results => {
-                this.allQuizData = results.flat();
-                this.updateDashboardUI();
-            });
-        } else {
-            this.fetchSubjectData(this.currentSubject).then(data => {
-                this.allQuizData = data;
-                this.updateDashboardUI();
-            });
-        }
+        this.updateDashboardUI();
     },
 
     fetchSubjectData(subject) {
@@ -143,20 +146,51 @@ const app = {
     },
 
     updateDashboardUI() {
-        const total = this.allQuizData.length;
-        $("total-db-count").innerText = total;
-        $("total-db-count-lr").innerText = total;
-        let checkCount = 0;
+        // 1. 전체 통합 숙지율 계산
+        const globalTotal = this.allQuizData.length;
+        let globalCorrectCount = 0;
         this.allQuizData.forEach(q => {
             const sub = q['_subject'];
             if (this.learningProgress[sub] && this.learningProgress[sub][q['문제']] === true) {
-                checkCount++;
+                globalCorrectCount++;
             }
         });
-        $("check-count").innerText = checkCount;
-        const rate = total === 0 ? 0 : Math.round((checkCount / total) * 100);
-        $("learning-rate-text").innerText = rate;
-        $("learning-rate-bar").style.width = rate + "%";
+        const globalRate = globalTotal === 0 ? 0 : Math.round((globalCorrectCount / globalTotal) * 100);
+        
+        $("global-total-count").innerText = globalTotal;
+        $("global-check-count").innerText = globalCorrectCount;
+        $("global-learning-rate-text").innerText = globalRate;
+        $("global-learning-rate-bar").style.width = globalRate + "%";
+
+        // 2. 조건부 UI 노출 제어
+        if (this.currentSubject === "ALL") {
+            $("current-subject-stat").style.display = "none";
+            $("pc-subject-list-container").style.display = "block";
+            const mobileBtn = $("mobile-progress-btn-container");
+            if (mobileBtn) mobileBtn.style.display = "block";
+        } else {
+            $("current-subject-stat").style.display = "block";
+            $("pc-subject-list-container").style.display = "none";
+            const mobileBtn = $("mobile-progress-btn-container");
+            if (mobileBtn) mobileBtn.style.display = "none";
+
+            const displayData = this.allQuizData.filter(q => q['_subject'] === this.currentSubject);
+            const total = displayData.length;
+            $("total-db-count").innerText = total;
+            $("total-db-count-lr").innerText = total;
+
+            let checkCount = 0;
+            displayData.forEach(q => {
+                if (this.learningProgress[this.currentSubject] && this.learningProgress[this.currentSubject][q['문제']] === true) {
+                    checkCount++;
+                }
+            });
+
+            $("check-count").innerText = checkCount;
+            const rate = total === 0 ? 0 : Math.round((checkCount / total) * 100);
+            $("learning-rate-text").innerText = rate;
+            $("learning-rate-bar").style.width = rate + "%";
+        }
         
         this.renderSubjectStats("subject-stats-list-pc");
         this.renderSubjectStats("subject-stats-list-mobile");
@@ -188,25 +222,96 @@ const app = {
 
         subjects.forEach(sub => {
             const subData = this.allQuizData.filter(q => q['_subject'] === sub);
-            if (subData.length > 0) {
-                let subCorrect = 0;
-                subData.forEach(q => {
-                    if (this.learningProgress[sub] && this.learningProgress[sub][q['문제']] === true) subCorrect++;
-                });
-                container.appendChild(renderItem(sub, subCorrect, subData.length));
-            } else {
-                const placeholder = document.createElement("div");
-                placeholder.className = "stat-item";
-                placeholder.style.opacity = "0.5";
-                placeholder.innerHTML = `<div class="stat-label"><span>${sub}</span><span>(데이터 미로드)</span></div>`;
-                container.appendChild(placeholder);
-            }
+            let subCorrect = 0;
+            subData.forEach(q => {
+                if (this.learningProgress[sub] && this.learningProgress[sub][q['문제']] === true) subCorrect++;
+            });
+            container.appendChild(renderItem(sub, subCorrect, subData.length));
         });
     },
 
     showProgressScreen() {
         this.showScreen("progress-screen");
         this.renderSubjectStats("subject-stats-list-mobile");
+    },
+
+    showWrongNoteScreen() {
+        const filter = this.currentSubject === "ALL" ? "전체" : this.currentSubject;
+        this.currentWrongFilter = filter;
+        this.filteredWrongList = [];
+        
+        const collectFromSubject = (sub) => {
+            const sp = this.learningProgress[sub] || {};
+            this.allQuizData.forEach(q => {
+                if (q['_subject'] === sub && sp[q['문제']] === false) {
+                    this.filteredWrongList.push(q);
+                }
+            });
+        };
+
+        if (filter === "전체") {
+            const subjects = Object.keys(this.SHEET_DATA[this.currentCategory]);
+            subjects.forEach(sub => collectFromSubject(sub));
+        } else {
+            collectFromSubject(filter);
+        }
+
+        if (this.filteredWrongList.length === 0) {
+            return alert(`${filter} 과목에 등록된 오답이 없습니다.`);
+        }
+
+        this.wrongNotePage = 0;
+        this.showScreen("wrong-note-screen");
+        $("wrong-note-title").innerText = filter;
+        $("wrong-note-count").innerText = this.filteredWrongList.length;
+        this.renderWrongNotePage();
+    },
+
+    startPracticeFromWrongNotes() {
+        if (this.filteredWrongList.length === 0) return alert("문제가 없습니다.");
+        this.currentQuizPool = [...this.filteredWrongList].sort(() => 0.5 - Math.random());
+        this.currentMode = "practice";
+        this.launchQuiz();
+    },
+
+    renderWrongNotePage() {
+        const list = $("wrong-note-list");
+        list.innerHTML = "";
+        const s = this.wrongNotePage * this.itemsPerWrongNotePage;
+        const e = Math.min(s + this.itemsPerWrongNotePage, this.filteredWrongList.length);
+        
+        for (let i = s; i < e; i++) {
+            const q = this.filteredWrongList[i];
+            const div = document.createElement("div");
+            div.className = "review-card";
+            const imgHtml = (q['이미지'] && q['이미지'].trim()) ? '<img src="./images/' + q['이미지'].trim() + '" class="zoomable-img" style="max-width:100%;display:block;margin-bottom:10px;" onerror="this.style.display=\'none\'" onclick="app.showImageModal(this.src)">' : '';
+            const starText = this.isBookmarked(q) ? "Saved" : "BM";
+            let optsHtml = '<div class="options" style="margin-top:10px;">';
+            ['A','B','C','D','E'].forEach(opt => {
+                const val = getOptVal(q, opt);
+                if (!val) return;
+                const isCor = getCorrect(q) === opt;
+                let bg = 'background:#fff;border:1px solid #cbd5e1;color:#334155;';
+                let icon = '';
+                if (isCor) { bg = 'background:#d4edda;border:1px solid #1e7e34;color:#155724;font-weight:bold;'; icon = ' (정답)'; }
+                optsHtml += '<div style="padding:10px 14px;border-radius:6px;margin-bottom:8px;' + bg + '">' + opt + ') ' + val + icon + '</div>';
+            });
+            optsHtml += '</div>';
+            const subjectBadge = q['_subject'] ? `<span style="font-size: 0.75em; background: #e2e8f0; color: #475569; padding: 3px 8px; border-radius: 4px; margin-right: 8px; vertical-align: middle; display: inline-block; line-height: 1;">${q['_subject']}</span>` : '';
+            div.innerHTML = '<button class="card-bookmark-btn" style="position:absolute;top:10px;right:10px;background:none;border:1px solid #cbd5e1;font-size:0.65em;padding:2px 5px;border-radius:4px;cursor:pointer;color:#64748b;font-weight:bold;">' + starText + '</button>'
+                + '<div class="q-title" style="padding-right:50px; min-height:0; margin-bottom:10px;">' + subjectBadge + (i + 1) + '. ' + q['문제'] + '</div>'
+                + imgHtml + optsHtml
+                + '<div class="feedback info" style="display:block;margin-top:auto;"><strong>해설:</strong><br><span class="explanation-text">' + (q['해설'] || '해설이 등록되지 않았습니다.') + '</span></div>';
+            div.querySelector('.card-bookmark-btn').onclick = (e) => this.toggleBookmark(q, e.target);
+            list.appendChild(div);
+        }
+
+        $("wrong-note-current-page").innerText = this.wrongNotePage + 1;
+        this.renderGenericPagination("wrong-note-pagination-controls", this.filteredWrongList.length, this.itemsPerWrongNotePage, this.wrongNotePage, (p) => {
+            this.wrongNotePage = p;
+            this.renderWrongNotePage();
+        });
+        window.scrollTo(0, 0);
     },
 
     renderBookmarkFolders() {
@@ -268,7 +373,7 @@ const app = {
     },
 
     showScreen(id) {
-        ["start-screen","quiz-area","study-area","result-screen","search-screen","bookmark-screen","progress-screen"].forEach(s => {
+        ["start-screen","quiz-area","study-area","result-screen","search-screen","bookmark-screen","progress-screen","wrong-note-screen"].forEach(s => {
             const el = $(s);
             if (el) el.style.display = s === id ? 'block' : 'none';
         });
@@ -427,8 +532,13 @@ const app = {
     startQuiz(mode) {
         if (this.allQuizData.length === 0) return alert("문제가 로드되지 않았습니다.");
         this.currentMode = mode;
-        let count = Math.min(parseInt($("question-count").value) || 10, this.allQuizData.length);
-        this.currentQuizPool = [...this.allQuizData].sort(() => Math.random() - 0.5).slice(0, count);
+        
+        let pool = this.currentSubject === "ALL" 
+            ? this.allQuizData 
+            : this.allQuizData.filter(q => q['_subject'] === this.currentSubject);
+
+        let count = Math.min(parseInt($("question-count").value) || 10, pool.length);
+        this.currentQuizPool = [...pool].sort(() => Math.random() - 0.5).slice(0, count);
         this.launchQuiz();
     },
 
@@ -528,7 +638,6 @@ const app = {
         prev.onclick = () => { this.currentPage--; this.renderQuizPage(); };
         c.appendChild(prev);
 
-        // 📝 연습/시험/시뮬레이션 모든 퀴즈 모드에서 간소화된 페이지 표시 적용
         const info = document.createElement("span");
         info.style.margin = "0 15px"; info.style.fontWeight = "bold"; info.style.color = "#64748b";
         info.innerText = `${this.currentPage + 1} / ${total}`;
@@ -543,7 +652,9 @@ const app = {
 
     updateLearningRate(q, isCorrect) {
         if (!this.learningProgress[this.currentSubject]) this.learningProgress[this.currentSubject] = {};
-        this.learningProgress[this.currentSubject][q['문제']] = isCorrect;
+        const sub = q['_subject'] || this.currentSubject;
+        if (!this.learningProgress[sub]) this.learningProgress[sub] = {};
+        this.learningProgress[sub][q['문제']] = isCorrect;
         this.saveProgress();
     },
 
@@ -551,7 +662,7 @@ const app = {
         const unanswered = this.currentQuizPool.length - Object.keys(this.userAnswers).length;
         if (unanswered > 0 && !confirm(unanswered + "문제를 아직 풀지 않았습니다. 정말로 제출하시겠습니까?")) return;
         let correctCount = 0;
-        this.wrongList = []; // 클래스 멤버로 저장
+        this.wrongList = []; 
         this.currentQuizPool.forEach((q, idx) => {
             const ua = this.userAnswers[idx] || "";
             const isCor = ua === getCorrect(q);
@@ -763,7 +874,7 @@ document.addEventListener("keydown", (e) => {
                 if (finish && finish.style.display !== "none") finish.click();
             }
         } else if (['1', '2', '3', '4', '5'].includes(e.key)) {
-            const opts = ['A', 'B', 'C', 'D', 'E'];
+            const opts = ['A', 'B', 'C', 'D','E'];
             const optIdx = parseInt(e.key) - 1;
             const currentQIndex = app.currentPage * app.itemsPerPage;
             if (currentQIndex < app.currentQuizPool.length) {
