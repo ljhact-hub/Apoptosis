@@ -25,6 +25,7 @@ const app = {
     studyPage: 0, itemsPerStudyPage: 10,
     searchPage: 0, itemsPerSearchPage: 10, searchResults: [],
     bookmarkPage: 0, itemsPerBookmarkPage: 10, currentBookmarkFolder: "",
+    resultPage: 0, itemsPerResultPage: 10, wrongList: [],
     userAnswers: {}, practiceSubmitted: {},
     searchTimeout: null,
 
@@ -58,7 +59,10 @@ const app = {
     },
 
     updateItemsPerPage() {
-        this.itemsPerPage = window.innerWidth < 768 ? 1 : 2;
+        if (window.innerWidth < 768) this.itemsPerPage = 1;
+        else if (window.innerWidth < 1200) this.itemsPerPage = 2;
+        else if (window.innerWidth < 1600) this.itemsPerPage = 4;
+        else this.itemsPerPage = 6;
     },
 
     loadStorageData() {
@@ -153,7 +157,56 @@ const app = {
         const rate = total === 0 ? 0 : Math.round((checkCount / total) * 100);
         $("learning-rate-text").innerText = rate;
         $("learning-rate-bar").style.width = rate + "%";
+        
+        this.renderSubjectStats("subject-stats-list-pc");
+        this.renderSubjectStats("subject-stats-list-mobile");
         this.renderBookmarkFolders();
+    },
+
+    renderSubjectStats(containerId) {
+        const container = $(containerId);
+        if (!container) return;
+        container.innerHTML = "";
+        
+        const subjects = Object.keys(this.SHEET_DATA[this.currentCategory]);
+        
+        const renderItem = (name, correct, total) => {
+            const rate = total === 0 ? 0 : Math.round((correct / total) * 100);
+            const item = document.createElement("div");
+            item.className = "stat-item";
+            item.innerHTML = `
+                <div class="stat-label">
+                    <span>${name}</span>
+                    <span>${rate}% (${correct}/${total})</span>
+                </div>
+                <div class="stat-bar-bg">
+                    <div class="stat-bar-fill" style="width: ${rate}%"></div>
+                </div>
+            `;
+            return item;
+        };
+
+        subjects.forEach(sub => {
+            const subData = this.allQuizData.filter(q => q['_subject'] === sub);
+            if (subData.length > 0) {
+                let subCorrect = 0;
+                subData.forEach(q => {
+                    if (this.learningProgress[sub] && this.learningProgress[sub][q['문제']] === true) subCorrect++;
+                });
+                container.appendChild(renderItem(sub, subCorrect, subData.length));
+            } else {
+                const placeholder = document.createElement("div");
+                placeholder.className = "stat-item";
+                placeholder.style.opacity = "0.5";
+                placeholder.innerHTML = `<div class="stat-label"><span>${sub}</span><span>(데이터 미로드)</span></div>`;
+                container.appendChild(placeholder);
+            }
+        });
+    },
+
+    showProgressScreen() {
+        this.showScreen("progress-screen");
+        this.renderSubjectStats("subject-stats-list-mobile");
     },
 
     renderBookmarkFolders() {
@@ -215,7 +268,7 @@ const app = {
     },
 
     showScreen(id) {
-        ["start-screen","quiz-area","study-area","result-screen","search-screen","bookmark-screen"].forEach(s => {
+        ["start-screen","quiz-area","study-area","result-screen","search-screen","bookmark-screen","progress-screen"].forEach(s => {
             const el = $(s);
             if (el) el.style.display = s === id ? 'block' : 'none';
         });
@@ -498,23 +551,38 @@ const app = {
         const unanswered = this.currentQuizPool.length - Object.keys(this.userAnswers).length;
         if (unanswered > 0 && !confirm(unanswered + "문제를 아직 풀지 않았습니다. 정말로 제출하시겠습니까?")) return;
         let correctCount = 0;
-        const wrongList = [];
+        this.wrongList = []; // 클래스 멤버로 저장
         this.currentQuizPool.forEach((q, idx) => {
             const ua = this.userAnswers[idx] || "";
             const isCor = ua === getCorrect(q);
             this.updateLearningRate(q, isCor);
             if (isCor) correctCount++;
-            else wrongList.push({ question: q, userAns: ua, index: idx + 1 });
+            else this.wrongList.push({ question: q, userAns: ua, index: idx + 1 });
         });
         this.showScreen("result-screen");
         $("correct-count").innerText = correctCount;
         $("result-total-count").innerText = this.currentQuizPool.length;
         const r = correctCount / this.currentQuizPool.length;
         $("score-message").innerText = r === 1 ? "Perfect! 완벽합니다." : r >= 0.7 ? "합격권입니다. 오답을 확인하세요." : "복습이 필요합니다.";
+        
+        this.resultPage = 0;
+        this.renderResultPage();
+    },
+
+    renderResultPage() {
         const rc = $("wrong-review-list");
         rc.innerHTML = "";
-        if (wrongList.length === 0) { rc.innerHTML = "<div style='color:#1e7e34;font-weight:bold;text-align:center;padding:30px;grid-column:1/-1;'>틀린 문제가 없습니다!</div>"; return; }
-        wrongList.forEach(wi => {
+        if (this.wrongList.length === 0) { 
+            rc.innerHTML = "<div style='color:#1e7e34;font-weight:bold;text-align:center;padding:30px;grid-column:1/-1;'>틀린 문제가 없습니다!</div>"; 
+            $("result-pagination-controls").innerHTML = "";
+            return; 
+        }
+
+        const s = this.resultPage * this.itemsPerResultPage;
+        const e = Math.min(s + this.itemsPerResultPage, this.wrongList.length);
+        
+        for (let i = s; i < e; i++) {
+            const wi = this.wrongList[i];
             const q = wi.question;
             const div = document.createElement("div");
             div.className = "review-card";
@@ -540,6 +608,12 @@ const app = {
                 + '<div class="feedback info" style="display:block;margin-top:auto;"><strong>해설:</strong><br><span class="explanation-text">' + (q['해설'] || '해설이 등록되지 않았습니다.') + '</span></div>';
             div.querySelector('.card-bookmark-btn').onclick = (e) => this.toggleBookmark(q, e.target);
             rc.appendChild(div);
+        }
+
+        $("result-current-page").innerText = this.resultPage + 1;
+        this.renderGenericPagination("result-pagination-controls", this.wrongList.length, this.itemsPerResultPage, this.resultPage, (p) => {
+            this.resultPage = p;
+            this.renderResultPage();
         });
         window.scrollTo(0, 0);
     },

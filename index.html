@@ -31,45 +31,76 @@
 <div class="container">
     <div id="start-screen">
         <h1 id="main-title">CLST</h1>
-        <div class="selector-group">
-            <div class="selector-box">
-                <label>분류</label>
-                <select id="category-select" onchange="app.onCategoryChange()">
-                    <option value="ASCPi">ASCPi</option>
-                    <option value="내신">내신 (GPA)</option>
-                </select>
+        
+        <div class="start-grid">
+            <!-- 사이드바: 설정 및 정보 -->
+            <div class="start-sidebar">
+                <div class="settings-box">
+                    <h3>학습 현황</h3>
+                    <div id="current-subject-stat" style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #bae6fd;">
+                        <p style="margin-bottom: 10px;"><strong id="display-subject-name">과목</strong> 보유 문항: <strong id="total-db-count">0</strong>개</p>
+                        <div style="margin-bottom: 0;">
+                            <label style="font-weight: bold; font-size: 0.9em;">현재 과목 숙지율</label>
+                            <div class="lr-bar-container"><div id="learning-rate-bar" class="lr-bar"></div></div>
+                            <div style="text-align: right; font-size: 0.85em; margin-top: 5px; color: #64748b;"><span id="learning-rate-text">0</span>% (<span id="check-count">0</span> / <span id="total-db-count-lr">0</span>)</div>
+                        </div>
+                    </div>
+
+                    <!-- PC 전용: 과목별 상세 리스트 -->
+                    <div class="pc-only">
+                        <h4 style="font-size: 1em; color: #0369a1; margin-bottom: 15px;">과목별 상세 현황</h4>
+                        <div id="subject-stats-list-pc" class="scrollable-stats"></div>
+                    </div>
+
+                    <!-- 모바일 전용: 상세 현황 보기 버튼 -->
+                    <div class="mobile-only" style="margin-top: 15px;">
+                        <button class="btn btn-outline" style="margin-top: 0; padding: 10px;" onclick="app.showProgressScreen()">전체 과목별 현황 보기</button>
+                    </div>
+                </div>
             </div>
-            <div class="selector-box">
-                <label>과목</label>
-                <select id="subject-select" onchange="app.onSubjectChange()"></select>
-            </div>
-        </div>
-        <div class="settings-box">
-            <h3>대시보드</h3>
-            <p style="margin-bottom: 10px;"><strong id="display-subject-name">과목</strong> 보유 문항: <strong id="total-db-count">0</strong>개</p>
-            <div style="margin-bottom: 0;">
-                <label style="font-weight: bold; font-size: 0.9em;">동적 학습률 (완벽 숙지율)</label>
-                <div class="lr-bar-container"><div id="learning-rate-bar" class="lr-bar"></div></div>
-                <div style="text-align: right; font-size: 0.85em; margin-top: 5px; color: #64748b;"><span id="learning-rate-text">0</span>% (<span id="check-count">0</span> / <span id="total-db-count-lr">0</span>)</div>
-            </div>
-        </div>
-        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-            <button class="btn btn-secondary" style="margin-top: 0; flex: 1;" onclick="app.showSearchScreen()">문항 검색</button>
-            <button class="btn btn-secondary" style="margin-top: 0; flex: 1;" onclick="app.showBookmarkScreen()">북마크 보관함</button>
-        </div>
-        <div>
-            <hr style="border:0; border-top: 1px solid #cbd5e1; margin-bottom: 15px;">
-            <label style="font-weight: bold; font-size: 0.9em;">응시 문항 수:</label>
-            <input type="number" id="question-count" value="10" min="1" style="width: 80px; padding: 8px; margin-bottom: 15px; display: inline-block;">
-            <button class="btn btn-primary" onclick="app.startQuiz('practice')">연습 모드 (자유 선택/개별 채점)</button>
-            <button class="btn btn-danger" onclick="app.startQuiz('exam')">시험 모드 (실전 평가/일괄 채점)</button>
-            <button class="btn btn-outline" onclick="app.startReviewMode()">해설 모드 (전체 훑어보기)</button>
-            <div style="margin-top: 25px; padding: 20px; border: 2px dashed #10b981; border-radius: 12px; background: #f0fdf4;">
-                <h3 style="margin-bottom: 10px; color: #059669;">실전 모의고사</h3>
-                <p style="font-size: 0.9em; color: #065f46; margin-bottom: 15px; line-height: 1.5;">학습을 마무리하며 실전 감각을 극대화하세요. (100문항, 150분 권장)</p>
-                <div style="display: flex; gap: 10px; flex-direction: column;">
-                    <button class="btn btn-primary" style="background: #10b981; border: none; margin-top: 0;" onclick="app.startSimulation('fixed')">모의고사 1회 (Self-Assessment)</button>
-                    <button class="btn btn-outline" style="border-color: #10b981; color: #059669; margin-top: 0;" onclick="app.startSimulation('random')">무작위 실전 모의고사 (과목별 비율 반영)</button>
+
+            <!-- 메인: 주요 액션 -->
+            <div class="start-main">
+                <div class="top-action-bar">
+                    <div class="selector-group">
+                        <div class="selector-box">
+                            <label>분류</label>
+                            <select id="category-select" onchange="app.onCategoryChange()">
+                                <option value="ASCPi">ASCPi</option>
+                                <option value="내신">내신 (GPA)</option>
+                            </select>
+                        </div>
+                        <div class="selector-box">
+                            <label>과목</label>
+                            <select id="subject-select" onchange="app.onSubjectChange()"></select>
+                        </div>
+                    </div>
+                    <div class="main-buttons">
+                        <button class="btn btn-secondary" onclick="app.showSearchScreen()">문항 검색</button>
+                        <button class="btn btn-secondary" onclick="app.showBookmarkScreen()">북마크 보관함</button>
+                    </div>
+                </div>
+                
+                <div class="action-card">
+                    <hr style="border:0; border-top: 1px solid #cbd5e1; margin-bottom: 15px;">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                        <label style="font-weight: bold; font-size: 0.9em; white-space: nowrap;">응시 문항 수:</label>
+                        <input type="number" id="question-count" value="10" min="1" style="width: 100px; padding: 10px;">
+                    </div>
+                    <div class="quiz-btn-group">
+                        <button class="btn btn-primary" onclick="app.startQuiz('practice')">연습 모드 (자유 선택/개별 채점)</button>
+                        <button class="btn btn-danger" onclick="app.startQuiz('exam')">시험 모드 (실전 평가/일괄 채점)</button>
+                        <button class="btn btn-outline" onclick="app.startReviewMode()">해설 모드 (전체 훑어보기)</button>
+                    </div>
+
+                    <div class="simulation-section">
+                        <h3>실전 모의고사</h3>
+                        <p style="font-size: 0.9em; color: #065f46; margin-bottom: 15px; line-height: 1.5;">학습을 마무리하며 실전 감각을 극대화하세요. (100문항, 150분 권장)</p>
+                        <div class="sim-btn-group">
+                            <button class="btn btn-primary sim-btn" onclick="app.startSimulation('fixed')">모의고사 1회 (Self-Assessment)</button>
+                            <button class="btn btn-outline sim-btn" onclick="app.startSimulation('random')">무작위 실전 모의고사 (과목별 비율 반영)</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -113,6 +144,16 @@
             </div>
         </div>
     </div>
+    <div id="progress-screen" style="display: none;">
+        <div class="quiz-header">
+            <div class="progress">전체 과목별 학습 현황</div>
+            <button class="btn btn-secondary btn-small" onclick="app.goHome()">돌아가기</button>
+        </div>
+        <div class="settings-box" style="text-align: left; padding: 25px;">
+            <p style="margin-bottom: 20px; color: #64748b; font-size: 0.95em;">각 과목별 문제 보유 수와 정답률을 확인할 수 있습니다.</p>
+            <div id="subject-stats-list-mobile" class="quiz-grid"></div>
+        </div>
+    </div>
     <div id="quiz-area" style="display: none;">
         <div class="quiz-header">
             <div class="progress"><span id="mode-badge" style="background:#e2e8f0; padding:4px 8px; border-radius:4px; margin-right:10px; font-size:0.8em;">모드</span> 전체 <span id="total-quiz-num">0</span>문항 중 <span id="current-page-text">1</span>페이지</div>
@@ -145,8 +186,16 @@
             점수: <strong id="correct-count" style="font-size: 2.5em; color: #003876;">0</strong> <span style="font-size: 1.2em; color: #64748b;">/ <span id="result-total-count">0</span></span>
             <div id="score-message" style="margin-top: 10px; font-weight: bold; color: #1e7e34;"></div>
         </div>
-        <h3 style="text-align: left; font-size: 1.2em; margin-bottom: 15px; color: #b91c1c;">오답 노트 리뷰</h3>
+        <button class="btn btn-primary" style="margin-bottom: 30px;" onclick="app.goHome()">대시보드로 돌아가기</button>
+        
+        <h3 style="text-align: left; font-size: 1.2em; margin-bottom: 15px; color: #b91c1c;">오답 노트 리뷰 - <span id="result-current-page">1</span>페이지</h3>
         <div id="wrong-review-list" class="quiz-grid"></div>
+        
+        <!-- 오답 노트 하단 페이지네이션 -->
+        <div id="result-footer" style="margin-top: 30px; padding-bottom: 20px;">
+            <div id="result-pagination-controls" class="pagination"></div>
+        </div>
+        
         <button class="btn btn-primary" style="margin-top: 20px;" onclick="app.goHome()">대시보드로 돌아가기</button>
     </div>
 </div>
