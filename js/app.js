@@ -284,7 +284,7 @@ const app = {
             const q = this.filteredWrongList[i];
             const div = document.createElement("div");
             div.className = "review-card";
-            const imgHtml = (q['이미지'] && q['이미지'].trim()) ? '<img src="./images/' + q['이미지'].trim() + '" class="zoomable-img" style="max-width:100%;display:block;margin-bottom:10px;" onerror="this.style.display=\'none\'" onclick="app.showImageModal(this.src)">' : '';
+            const imgHtml = (q['이미지'] && q['이미지'].trim()) ? '<img src="https://raw.githubusercontent.com/ljhact-hub/Apoptosis-Images/main/' + q['이미지'].trim() + '" class="zoomable-img" style="max-width:100%;display:block;margin-bottom:10px;" onerror="this.style.display=\'none\'" onclick="app.showImageModal(this.src)">' : '';
             const starText = this.isBookmarked(q) ? "Saved" : "BM";
             let optsHtml = '<div class="options" style="margin-top:10px;">';
             ['A','B','C','D','E'].forEach(opt => {
@@ -697,7 +697,7 @@ const app = {
             const q = wi.question;
             const div = document.createElement("div");
             div.className = "review-card";
-            const imgHtml = (q['이미지'] && q['이미지'].trim()) ? '<img src="./images/' + q['이미지'].trim() + '" class="zoomable-img" style="max-width:100%;display:block;margin-bottom:10px;" onerror="this.style.display=\'none\'" onclick="app.showImageModal(this.src)">' : '';
+            const imgHtml = (q['이미지'] && q['이미지'].trim()) ? '<img src="https://raw.githubusercontent.com/ljhact-hub/Apoptosis-Images/main/' + q['이미지'].trim() + '" class="zoomable-img" style="max-width:100%;display:block;margin-bottom:10px;" onerror="this.style.display=\'none\'" onclick="app.showImageModal(this.src)">' : '';
             const starText = this.isBookmarked(q) ? "Saved" : "BM";
             let optsHtml = '<div class="options" style="margin-top:10px;">';
             ['A','B','C','D','E'].forEach(opt => {
