@@ -509,7 +509,7 @@ const app = {
     createReviewCard(q, indexText = "") {
         const div = document.createElement("div");
         div.className = "review-card";
-        const imgHtml = (q['이미지'] && q['이미지'].trim()) ? '<img src="./images/' + q['이미지'].trim() + '" class="zoomable-img" style="max-width:100%;display:block;margin-bottom:10px;" onerror="this.style.display=\'none\'" onclick="app.showImageModal(this.src)">' : '';
+        const imgHtml = (q['이미지'] && q['이미지'].trim()) ? '<img src="https://raw.githubusercontent.com/ljhact-hub/Apoptosis-Images/main/' + q['이미지'].trim() + '" class="zoomable-img" style="max-width:100%;display:block;margin-bottom:10px;" onerror="this.style.display=\'none\'" onclick="app.showImageModal(this.src)">' : '';
         let optsHtml = '<div class="options" style="margin-top:10px;">';
         ['A','B','C','D','E'].forEach(opt => {
             const val = getOptVal(q, opt);
@@ -572,7 +572,7 @@ const app = {
         const card = document.createElement("div");
         card.className = "review-card";
         const starText = this.isBookmarked(q) ? "Saved" : "BM";
-        const imgHtml = (q['이미지'] && q['이미지'].trim()) ? '<img src="./images/' + q['이미지'].trim() + '" class="zoomable-img" style="max-width:100%;display:block;margin-bottom:10px;" onerror="this.style.display=\'none\'" onclick="app.showImageModal(this.src)">' : '';
+        const imgHtml = (q['이미지'] && q['이미지'].trim()) ? '<img src="https://raw.githubusercontent.com/ljhact-hub/Apoptosis-Images/main/' + q['이미지'].trim() + '" class="zoomable-img" style="max-width:100%;display:block;margin-bottom:10px;" onerror="this.style.display=\'none\'" onclick="app.showImageModal(this.src)">' : '';
         card.innerHTML = '<button class="card-bookmark-btn" style="position:absolute;top:10px;right:10px;background:none;border:1px solid #cbd5e1;font-size:0.65em;padding:2px 5px;border-radius:4px;cursor:pointer;color:#64748b;font-weight:bold;">' + starText + '</button>'
             + '<div class="q-title" style="padding-right:50px; min-height:0; margin-bottom:10px;">' + (index + 1) + '. ' + q['문제'] + '</div>' + imgHtml;
         card.querySelector('.card-bookmark-btn').onclick = (e) => this.toggleBookmark(q, e.target);

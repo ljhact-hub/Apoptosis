@@ -82,6 +82,9 @@ body {
 .stat-bar-bg { background: #e0f2fe; height: 6px !important; border-radius: 3px; overflow: hidden; }
 .stat-bar-fill { background: #38bdf8; height: 100%; transition: width 0.5s ease; }
 
+.lr-bar-container { background: #e2e8f0; height: 8px; border-radius: 4px; overflow: hidden; margin-top: 5px; }
+.lr-bar { background: #38bdf8; height: 100%; width: 0; transition: width 0.5s ease; }
+
 /* 커스텀 스크롤바 */
 .scrollable-stats::-webkit-scrollbar { width: 4px; }
 .scrollable-stats::-webkit-scrollbar-track { background: transparent; }
