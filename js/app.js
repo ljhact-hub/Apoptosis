@@ -732,8 +732,12 @@ const app = {
 
     startReviewMode() {
         if (this.allQuizData.length === 0) return alert("문제가 로드되지 않았습니다.");
+        this.studyPool = this.currentSubject === "ALL"
+            ? this.allQuizData
+            : this.allQuizData.filter(q => q['_subject'] === this.currentSubject);
+        if (this.studyPool.length === 0) return alert("선택한 과목에 문제가 없습니다.");
         this.studyPage = 0;
-        $("study-total-num").innerText = this.allQuizData.length;
+        $("study-total-num").innerText = this.studyPool.length;
         this.showScreen("study-area");
         this.renderStudyPage();
     },
@@ -784,11 +788,12 @@ const app = {
     renderStudyPage() {
         const c = $("study-list");
         c.innerHTML = "";
+        const pool = this.studyPool || this.allQuizData;
         const s = this.studyPage * this.itemsPerStudyPage;
-        const e = Math.min(s + this.itemsPerStudyPage, this.allQuizData.length);
-        for (let i = s; i < e; i++) c.appendChild(this.createReviewCard(this.allQuizData[i], (i + 1) + ". "));
+        const e = Math.min(s + this.itemsPerStudyPage, pool.length);
+        for (let i = s; i < e; i++) c.appendChild(this.createReviewCard(pool[i], (i + 1) + ". "));
         $("study-current-page").innerText = this.studyPage + 1;
-        this.renderGenericPagination("study-pagination-controls", this.allQuizData.length, this.itemsPerStudyPage, this.studyPage, (p) => {
+        this.renderGenericPagination("study-pagination-controls", pool.length, this.itemsPerStudyPage, this.studyPage, (p) => {
             this.studyPage = p;
             this.renderStudyPage();
         });
