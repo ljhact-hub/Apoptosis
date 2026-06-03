@@ -15,7 +15,8 @@ const app = {
             "Self-Assessment": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS_HRXA4uhh3GanmWZxHsS7EDcJ_5qOf4g4yunwlT7jSfoJYLOo3dLAsDAdEruyjj9fD-0cLI5CMdNR/pub?output=csv"
         },
         "내신": {
-            "임상화학": "https://docs.google.com/spreadsheets/d/e/2PACX-1vR9G8mJqpsn9xWmhg_2LCAWbfi2vsZTxRdq77NStrnzYHG3HCfgpatnlFh1Y6gP0IblU3EVJMPYr6_0/pub?output=csv"
+            "임상화학": "https://docs.google.com/spreadsheets/d/e/2PACX-1vR9G8mJqpsn9xWmhg_2LCAWbfi2vsZTxRdq77NStrnzYHG3HCfgpatnlFh1Y6gP0IblU3EVJMPYr6_0/pub?output=csv",
+            "microbiology": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRi7IJPlDMLLxuagUnmzUU31Gc2DeBCqP4reULDa4uzszkQ_SdDrd1d6Qy3ZozZPw/pub?output=csv"
         }
     },
     currentCategory: "ASCPi", currentSubject: "ALL",
