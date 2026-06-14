@@ -16,11 +16,12 @@ const app = {
         },
         "내신": {
             "임상화학": "https://docs.google.com/spreadsheets/d/e/2PACX-1vR9G8mJqpsn9xWmhg_2LCAWbfi2vsZTxRdq77NStrnzYHG3HCfgpatnlFh1Y6gP0IblU3EVJMPYr6_0/pub?output=csv",
-            "microbiology": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRi7IJPlDMLLxuagUnmzUU31Gc2DeBCqP4reULDa4uzszkQ_SdDrd1d6Qy3ZozZPw/pub?output=csv"
+            "microbiology": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRi7IJPlDMLLxuagUnmzUU31Gc2DeBCqP4reULDa4uzszkQ_SdDrd1d6Qy3ZozZPw/pub?output=csv",
+            "화학 2차": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS_2LL6ifjnUdal2YvKyw3dA2B7ru-aWfUQhQm4-J_3WIZq2zIzXrj65DtSzd4RJrJ1mJkyRt7A3gs-/pub?output=csv"
         }
     },
     currentCategory: "ASCPi", currentSubject: "ALL",
-    allQuizData: [], currentQuizPool: [],
+    allQuizData: [], currentQuizPool: [], studyPool: [],
     learningProgress: {}, bookmarks: {},
     currentMode: "", itemsPerPage: 2, currentPage: 0,
     studyPage: 0, itemsPerStudyPage: 10,
@@ -130,9 +131,41 @@ const app = {
                     const data = results.data.map(row => {
                         const n = {};
                         for (const k in row) {
-                            const nk = k.trim().replace(/^보기([a-e])$/i, (_, c) => '보기' + c.toUpperCase());
-                            n[nk] = (row[k] || '').trim();
+                            n[k.trim()] = (row[k] || '').trim();
                         }
+                        
+                        // Map '보기 1~5' to '보기A~E'
+                        const optMap = { '보기 1': '보기A', '보기 2': '보기B', '보기 3': '보기C', '보기 4': '보기D', '보기 5': '보기E' };
+                        for (const oldKey in optMap) {
+                            if (oldKey in n) {
+                                n[optMap[oldKey]] = n[oldKey];
+                            }
+                        }
+
+                        // Normalize '보기a' to '보기A'
+                        for (const k in n) {
+                            const match = k.match(/^보기([a-e])$/i);
+                            if (match) {
+                                const upperKey = '보기' + match[1].toUpperCase();
+                                if (k !== upperKey) {
+                                    n[upperKey] = n[k];
+                                }
+                            }
+                        }
+
+                        // Map numerical/OX answers to A~E
+                        if (n['정답']) {
+                            const ansRaw = n['정답'].toUpperCase().trim();
+                            const ansMap = {
+                                '1': 'A', '2': 'B', '3': 'C', '4': 'D', '5': 'E',
+                                'O': 'A', 'X': 'B', '참': 'A', '거짓': 'B',
+                                'TRUE': 'A', 'FALSE': 'B'
+                            };
+                            if (ansRaw in ansMap) {
+                                n['정답'] = ansMap[ansRaw];
+                            }
+                        }
+
                         n['_subject'] = subject; 
                         return n;
                     }).filter(row => row['문제']);
@@ -483,7 +516,10 @@ const app = {
     executeSearch() {
         const kw = $("full-search-input").value.toLowerCase().trim();
         if (kw.length < 2) return;
-        this.searchResults = this.allQuizData.filter(q => q['문제'].toLowerCase().includes(kw) || (q['해설'] && q['해설'].toLowerCase().includes(kw)));
+        const pool = this.currentSubject === "ALL"
+            ? this.allQuizData
+            : this.allQuizData.filter(q => q['_subject'] === this.currentSubject);
+        this.searchResults = pool.filter(q => q['문제'].toLowerCase().includes(kw) || (q['해설'] && q['해설'].toLowerCase().includes(kw)));
         this.searchPage = 0;
         this.renderSearchPage();
     },
@@ -652,7 +688,6 @@ const app = {
     },
 
     updateLearningRate(q, isCorrect) {
-        if (!this.learningProgress[this.currentSubject]) this.learningProgress[this.currentSubject] = {};
         const sub = q['_subject'] || this.currentSubject;
         if (!this.learningProgress[sub]) this.learningProgress[sub] = {};
         this.learningProgress[sub][q['문제']] = isCorrect;
@@ -873,8 +908,13 @@ document.addEventListener("keydown", (e) => {
             if (next && !next.disabled) next.click();
         } else if (e.key === "Enter") {
             if (app.currentMode === 'practice') {
-                const checks = document.querySelectorAll(".check-ans-btn");
-                if (checks.length > 0) checks[0].click();
+                const startIdx = app.currentPage * app.itemsPerPage;
+                const endIdx = Math.min(startIdx + app.itemsPerPage, app.currentQuizPool.length);
+                for (let qi = startIdx; qi < endIdx; qi++) {
+                    if (app.userAnswers[qi] && !app.practiceSubmitted[qi]) {
+                        app.submitPracticeAnswer(qi);
+                    }
+                }
             } else if (app.currentMode === 'exam') {
                 const finish = $("finish-exam-btn");
                 if (finish && finish.style.display !== "none") finish.click();
@@ -882,13 +922,16 @@ document.addEventListener("keydown", (e) => {
         } else if (['1', '2', '3', '4', '5'].includes(e.key)) {
             const opts = ['A', 'B', 'C', 'D','E'];
             const optIdx = parseInt(e.key) - 1;
-            const currentQIndex = app.currentPage * app.itemsPerPage;
-            if (currentQIndex < app.currentQuizPool.length) {
-                const q = app.currentQuizPool[currentQIndex];
+            const startIdx = app.currentPage * app.itemsPerPage;
+            const endIdx = Math.min(startIdx + app.itemsPerPage, app.currentQuizPool.length);
+            for (let qi = startIdx; qi < endIdx; qi++) {
+                const q = app.currentQuizPool[qi];
                 const val = getOptVal(q, opts[optIdx]);
-                if (val && (!app.practiceSubmitted[currentQIndex] || app.currentMode !== 'practice')) {
-                    app.userAnswers[currentQIndex] = opts[optIdx];
-                    app.renderQuizPage();
+                if (val && (!app.practiceSubmitted[qi] || app.currentMode !== 'practice') && !app.userAnswers[qi]) {
+                    app.userAnswers[qi] = opts[optIdx];
+                    app.renderQuizPage(false);
+                    if (app.currentMode === "exam") app.renderOMR();
+                    break;
                 }
             }
         }
