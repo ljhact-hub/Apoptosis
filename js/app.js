@@ -17,7 +17,8 @@ const app = {
         "내신": {
             "임상화학": "https://docs.google.com/spreadsheets/d/e/2PACX-1vR9G8mJqpsn9xWmhg_2LCAWbfi2vsZTxRdq77NStrnzYHG3HCfgpatnlFh1Y6gP0IblU3EVJMPYr6_0/pub?output=csv",
             "microbiology": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRi7IJPlDMLLxuagUnmzUU31Gc2DeBCqP4reULDa4uzszkQ_SdDrd1d6Qy3ZozZPw/pub?output=csv",
-            "화학 2차": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS_2LL6ifjnUdal2YvKyw3dA2B7ru-aWfUQhQm4-J_3WIZq2zIzXrj65DtSzd4RJrJ1mJkyRt7A3gs-/pub?output=csv"
+            "화학 2차": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS_2LL6ifjnUdal2YvKyw3dA2B7ru-aWfUQhQm4-J_3WIZq2zIzXrj65DtSzd4RJrJ1mJkyRt7A3gs-/pub?output=csv",
+            "분자생물학": "https://docs.google.com/spreadsheets/d/e/2PACX-1vTFQ2PEleBkjJbEcY4Qoe6A_XYlQdSgC6rS9JCT1uu3KOyEe0m5f-0iH8qW-7PPzUSAOTR4IIvJBcbN/pub?output=csv"
         }
     },
     currentCategory: "ASCPi", currentSubject: "ALL",
